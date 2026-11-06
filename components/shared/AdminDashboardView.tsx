@@ -463,13 +463,9 @@ export default function AdminDashboardView({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-medical-text">CMS Admin RS</span>
-                <span className="text-[10px] font-bold bg-medical-primary/10 text-medical-primary px-2 py-0.5 rounded-full">
-                  Akses Penuh
-                </span>
+                <span className="font-bold text-base text-medical-text">Dashboard Booking</span>
               </div>
               <span className="text-xs text-medical-muted block truncate max-w-xs">
-                {settings.name} • Manajemen Master Data & Jadwal Faskes
               </span>
             </div>
           </div>
@@ -648,11 +644,8 @@ export default function AdminDashboardView({
             <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
               <div className="px-6 py-4 border-b border-medical-border bg-medical-subtle/30 flex items-center justify-between">
                 <h3 className="text-base font-bold text-medical-text">
-                  Helicopter View: Seluruh Jadwal Pasien RS ({filteredAppointments.length})
+                Seluruh Jadwal Pasien ({filteredAppointments.length})
                 </h3>
-                <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" /> Proteksi Anti Double-Booking Aktif
-                </span>
               </div>
 
               <div className="overflow-x-auto">
@@ -1033,7 +1026,7 @@ export default function AdminDashboardView({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-medical-text">
-                  Daftar Jadwal Blokir Dokter (Block-outs)
+                  Daftar Jadwal Cuti Dokter
                 </h3>
                 <p className="text-xs text-medical-muted">
                   Jadwal dokter yang diblokir otomatis tidak akan muncul dan tidak dapat dipesan oleh pasien di portal publik.
@@ -1888,7 +1881,7 @@ export default function AdminDashboardView({
           <div className="bg-white rounded-2xl max-w-md w-full border border-medical-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="bg-amber-600 text-white p-5 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold">Blokir Jadwal Dokter (Block-out)</h3>
+                <h3 className="text-base font-bold">Blokir Jadwal Dokter </h3>
                 <span className="text-xs text-white/80">Operasi Cito / Cuti / Rapat Mutu Rumah Sakit</span>
               </div>
               <button
@@ -1954,7 +1947,7 @@ export default function AdminDashboardView({
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Operasi Darurat Cito / Seminar Medis"
+                  placeholder="Contoh: Operasi Darurat"
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-amber-500 outline-none"

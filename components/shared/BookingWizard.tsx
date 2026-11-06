@@ -216,7 +216,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                 Pendaftaran Janji Temu Dokter
               </h2>
               <p className="text-xs sm:text-sm text-medical-muted mt-0.5">
-                Ikuti 4 langkah mudah berikut untuk memilih dokter dan mendapatkan nomor antrean resmi.
+                Ikuti 4 langkah untuk memilih dokter dan mendapatkan nomor antrean.
               </p>
             </div>
 
@@ -557,7 +557,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                 <div>
                   <h3 className="text-lg font-bold text-medical-text">Langkah 4: Data Pasien & Konfirmasi</h3>
                   <p className="text-xs sm:text-sm text-medical-muted mt-0.5">
-                    Isi data diri untuk penerbitan nomor antrean resmi klinik.
+                    Isi data diri untuk penerbitan nomor antrean klinik.
                   </p>
                 </div>
                 <button
@@ -586,7 +586,6 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   <span className="font-bold text-medical-primary text-sm block mt-0.5">
                     {selectedDate} ({selectedSlot?.startTime} - {selectedSlot?.endTime} WIB)
                   </span>
-                  <span className="text-emerald-700 font-semibold">✓ Jam periksa pasti & bebas antre</span>
                 </div>
               </div>
 
@@ -601,7 +600,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                     <input
                       type="text"
                       required
-                      placeholder="Contoh: Budi Santoso / Ananda Kevin"
+                      placeholder="Contoh: Budi Santoso"
                       value={patientName}
                       onChange={(e) => setPatientName(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-medical-border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-medical-primary bg-white text-medical-text shadow-2xs"
@@ -631,7 +630,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
                 <div>
                   <label className="text-xs font-bold text-medical-text block mb-1">
-                    Alamat Email (Opsional)
+                    Alamat Email
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-medical-muted absolute left-3.5 top-3" />
@@ -647,7 +646,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
                 <div>
                   <label className="text-xs font-bold text-medical-text block mb-1">
-                    Keluhan yang Dirasakan
+                    Konsultasi Apa?
                   </label>
                   <div className="relative">
                     <FileText className="w-4 h-4 text-medical-muted absolute left-3.5 top-3" />

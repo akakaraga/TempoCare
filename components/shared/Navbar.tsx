@@ -24,7 +24,6 @@ export default function Navbar({ clinicSettings }: NavbarProps) {
               Tempo<span className="text-medical-primary">Care</span>
             </span>
             <span className="text-xs font-semibold text-medical-muted tracking-tight leading-tight mt-0.5">
-              {clinicName}
             </span>
           </div>
         </Link>

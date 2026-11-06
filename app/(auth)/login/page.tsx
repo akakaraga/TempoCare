@@ -20,10 +20,10 @@ export default function LoginPage({
           </span>
         </Link>
         <h2 className="mt-4 text-xl sm:text-2xl font-extrabold text-medical-text">
-          Portal Masuk Staf Medis & RS
+          Portal Masuk Dashboard Pelayanan Klinik
         </h2>
         <p className="mt-1 text-xs text-medical-muted">
-          Akses terbatas khusus Dokter, Resepsionis, dan Tenaga Medis Faskes
+          Akses terbatas khusus Admin Resepsionis, Dokter dan Tenaga Medis
         </p>
       </div>
 
