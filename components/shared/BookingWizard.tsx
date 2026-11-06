@@ -210,7 +210,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-medical-border/80 text-medical-primary mb-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-medical-accent" /> Formulir Pendaftaran Pasien
+               Formulir Pendaftaran Pasien
               </span>
               <h2 className="text-xl sm:text-2xl font-extrabold text-medical-text">
                 Pendaftaran Janji Temu Dokter
@@ -267,7 +267,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                 <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-medical-muted">
                   <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
                   <p className="font-semibold text-sm">Belum ada poliklinik yang dibuka.</p>
-                  <p className="text-xs mt-1">Silakan masuk ke Portal Staf untuk menambahkan poliklinik.</p>
+                  <p className="text-xs mt-1">Layanan pendaftaran sedang disiapkan oleh pihak faskes.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -23,7 +23,6 @@ export default async function HomePage() {
           <div className="text-center max-w-3xl mx-auto space-y-4">
             {/* Friendly Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-medical-border shadow-xs text-medical-primary">
-              <Sparkles className="w-4 h-4 text-medical-accent" />
               <span>Layanan Pendaftaran Pasien Online 24 Jam</span>
             </div>
 
@@ -35,7 +34,7 @@ export default async function HomePage() {
 
             {/* Reassuring Subtitle */}
             <p className="text-sm sm:text-base text-medical-muted leading-relaxed max-w-2xl mx-auto">
-              Pilih dokter spesialis dan jam periksa yang cocok dari rumah. Dapatkan nomor antrean resmi seketika — jadwal Anda dijamin pasti dan tidak akan bentrok dengan pasien lain.
+              Pilih dokter spesialis dan jam periksa yang cocok dari rumah. Dapatkan nomor antrean seketika dan jadwal Anda dijamin pasti dan tidak akan bersamaan dengan pasien lain.
             </p>
 
             {/* 3 Simple Value Pillars for Patients */}
@@ -50,7 +49,7 @@ export default async function HomePage() {
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
                 <Calendar className="w-4 h-4 text-amber-600" />
-                Bisa Ganti Hari Lewat HP (Maksimal H-1)
+                Bisa Ganti Hari (Maksimal H-1)
               </span>
             </div>
           </div>

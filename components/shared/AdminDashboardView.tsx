@@ -760,8 +760,17 @@ export default function AdminDashboardView({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {serviceList.map((service) => {
+            {serviceList.length === 0 ? (
+              <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center text-medical-muted">
+                <Building2 className="w-10 h-10 text-medical-primary/50 mx-auto mb-3" />
+                <h4 className="font-bold text-sm text-medical-text">Belum ada poliklinik / layanan</h4>
+                <p className="text-xs text-medical-muted mt-1 max-w-sm mx-auto">
+                  Klik tombol &ldquo;Tambah Poliklinik Baru&rdquo; di atas untuk mendaftarkan nama poli, durasi konsultasi, dan tarifnya.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {serviceList.map((service) => {
                 const assignedCount = doctors.filter(
                   (d) => d.assigned_service_ids && d.assigned_service_ids.includes(service.id)
                 ).length;
@@ -841,6 +850,7 @@ export default function AdminDashboardView({
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
@@ -867,8 +877,17 @@ export default function AdminDashboardView({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {doctors.map((doc) => {
+            {doctors.filter((d) => d.role === 'doctor').length === 0 ? (
+              <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center text-medical-muted">
+                <Stethoscope className="w-10 h-10 text-medical-primary/50 mx-auto mb-3" />
+                <h4 className="font-bold text-sm text-medical-text">Belum ada data dokter</h4>
+                <p className="text-xs text-medical-muted mt-1 max-w-sm mx-auto">
+                  Klik tombol &ldquo;Tambah Dokter Baru&rdquo; di atas untuk mendaftarkan nama dokter, spesialisasi, poliklinik yang dilayani, dan jadwal praktiknya.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {doctors.map((doc) => {
                 const assignedNames = (doc.assigned_service_ids || [])
                   .map((sId) => serviceList.find((s) => s.id === sId)?.name)
                   .filter(Boolean);
@@ -981,6 +1000,7 @@ export default function AdminDashboardView({
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
@@ -1007,47 +1027,57 @@ export default function AdminDashboardView({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {blockOuts.map((block) => (
-                <div
-                  key={block.id}
-                  className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft space-y-3 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                        Jadwal Ditutup
+            {blockOuts.length === 0 ? (
+              <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center text-medical-muted">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500/50 mx-auto mb-3" />
+                <h4 className="font-bold text-sm text-medical-text">Tidak ada blokir jam aktif</h4>
+                <p className="text-xs text-medical-muted mt-1 max-w-sm mx-auto">
+                  Seluruh dokter bertugas sesuai jadwal reguler. Jika ada dokter yang cuti atau istirahat khusus, tambahkan melalui tombol di atas.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {blockOuts.map((block) => (
+                  <div
+                    key={block.id}
+                    className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft space-y-3 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                          Jadwal Ditutup
+                        </span>
+                        <Ban className="w-5 h-5 text-amber-600" />
+                      </div>
+
+                      <h4 className="font-bold text-sm text-medical-text mt-3">{block.staff?.full_name}</h4>
+                      <span className="text-xs text-medical-muted block mt-0.5">
+                        Alasan: <strong className="text-medical-text">{block.reason}</strong>
                       </span>
-                      <Ban className="w-5 h-5 text-amber-600" />
-                    </div>
 
-                    <h4 className="font-bold text-sm text-medical-text mt-3">{block.staff?.full_name}</h4>
-                    <span className="text-xs text-medical-muted block mt-0.5">
-                      Alasan: <strong className="text-medical-text">{block.reason}</strong>
-                    </span>
-
-                    <div className="pt-3 mt-3 border-t border-medical-border text-xs text-medical-muted space-y-1">
-                      <div className="flex items-center gap-1">
-                        <CalendarIcon className="w-3.5 h-3.5 text-medical-primary" /> Tanggal: <strong>{block.block_date}</strong>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-medical-primary" /> Jam: <strong>{block.start_time} - {block.end_time} WIB</strong>
+                      <div className="pt-3 mt-3 border-t border-medical-border text-xs text-medical-muted space-y-1">
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon className="w-3.5 h-3.5 text-medical-primary" /> Tanggal: <strong>{block.block_date}</strong>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-medical-primary" /> Jam: <strong>{block.start_time} - {block.end_time} WIB</strong>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="pt-3 border-t border-medical-border/60 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteBlockOut(block.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Buka Kembali Slot
-                    </button>
+                    <div className="pt-3 border-t border-medical-border/60 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBlockOut(block.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Buka Kembali Slot
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

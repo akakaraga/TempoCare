@@ -19,40 +19,7 @@ const defaultClinicSettings: ClinicSettings = {
   updated_at: new Date().toISOString(),
 };
 
-const initialServices: Service[] = [
-  {
-    id: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
-    name: 'Konsultasi Spesialis Anak',
-    description: 'Pemeriksaan tumbuh kembang, imunisasi, dan penanganan demam/batuk pada anak.',
-    duration_minutes: 30,
-    price: 250000,
-    is_active: true,
-  },
-  {
-    id: 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
-    name: 'Cabut Gigi & Scaling',
-    description: 'Tindakan pencabutan gigi sulung/tetap serta pembersihan karang gigi profesional.',
-    duration_minutes: 45,
-    price: 350000,
-    is_active: true,
-  },
-  {
-    id: '16eebc99-9c0b-4ef8-bb6d-6bb9bd380a77',
-    name: 'Konsultasi Dokter Umum',
-    description: 'Pemeriksaan kesehatan dasar, tensi darah, dan resep obat awal.',
-    duration_minutes: 20,
-    price: 120000,
-    is_active: true,
-  },
-  {
-    id: '27eebc99-9c0b-4ef8-bb6d-6bb9bd380a88',
-    name: 'Konsultasi Penyakit Dalam',
-    description: 'Evaluasi metabolik, hipertensi, diabetes, dan konsultasi organ dalam.',
-    duration_minutes: 30,
-    price: 300000,
-    is_active: true,
-  },
-];
+const initialServices: Service[] = [];
 
 const initialStaff: Staff[] = [
   {
@@ -69,75 +36,9 @@ const initialStaff: Staff[] = [
     practice_end_time: '17:00',
     assigned_service_ids: [],
   },
-  {
-    id: 'a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12',
-    full_name: 'Dr. Sarah Danastri',
-    role: 'admin',
-    specialization: 'Manajemen RS & Mutu Klinis',
-    email: 'admin@tempocare.clinic',
-    phone: '08111222333',
-    is_active: true,
-    practice_days: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
-    practice_start_time: '08:00',
-    practice_end_time: '17:00',
-    assigned_service_ids: [],
-  },
-  {
-    id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-    full_name: 'Dr. Budi Santoso, Sp.A',
-    role: 'doctor',
-    specialization: 'Spesialis Anak (Pediatri)',
-    email: 'dr.budi@tempocare.clinic',
-    phone: '081234567891',
-    is_active: true,
-    practice_days: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
-    practice_start_time: '08:00',
-    practice_end_time: '16:00',
-    assigned_service_ids: [
-      'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55', // Konsultasi Anak
-      '16eebc99-9c0b-4ef8-bb6d-6bb9bd380a77', // Dokter Umum
-    ],
-  },
-  {
-    id: 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-    full_name: 'Drg. Citra Lestari',
-    role: 'doctor',
-    specialization: 'Dokter Gigi & Konservasi',
-    email: 'drg.citra@tempocare.clinic',
-    phone: '081345678912',
-    is_active: true,
-    practice_days: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'],
-    practice_start_time: '09:00',
-    practice_end_time: '17:00',
-    assigned_service_ids: [
-      'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66', // Cabut Gigi
-    ],
-  },
-  {
-    id: 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
-    full_name: 'Dr. Hendra Gunawan, Sp.PD',
-    role: 'doctor',
-    specialization: 'Spesialis Penyakit Dalam',
-    email: 'dr.hendra@tempocare.clinic',
-    phone: '081456789123',
-    is_active: true,
-    practice_days: ['Senin', 'Rabu', 'Jumat', 'Sabtu'],
-    practice_start_time: '08:00',
-    practice_end_time: '15:00',
-    assigned_service_ids: [
-      '27eebc99-9c0b-4ef8-bb6d-6bb9bd380a88', // Penyakit Dalam
-      '16eebc99-9c0b-4ef8-bb6d-6bb9bd380a77', // Dokter Umum
-    ],
-  },
 ];
 
-const initialStaffServices = [
-  { staff_id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', service_id: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55' },
-  { staff_id: 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', service_id: 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66' },
-  { staff_id: 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', service_id: '27eebc99-9c0b-4ef8-bb6d-6bb9bd380a88' },
-  { staff_id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', service_id: '16eebc99-9c0b-4ef8-bb6d-6bb9bd380a77' },
-  { staff_id: 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44', service_id: '16eebc99-9c0b-4ef8-bb6d-6bb9bd380a77' },
-];
+const initialStaffServices: { staff_id: string; service_id: string }[] = [];
 
 function getTodayString(offsetDays = 0): string {
   const d = new Date();
@@ -145,83 +46,9 @@ function getTodayString(offsetDays = 0): string {
   return d.toISOString().split('T')[0];
 }
 
-const initialAppointments: Appointment[] = [
-  {
-    id: '5aeebc99-9c0b-4ef8-bb6d-6bb9bd380b11',
-    patient_name: 'Ananda Rizky (Ibu Maya)',
-    patient_whatsapp: '081234567890',
-    patient_email: 'maya.rizky@example.com',
-    service_id: 'e4eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
-    staff_id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-    appointment_date: getTodayString(0),
-    start_time: '09:00',
-    end_time: '09:30',
-    status: 'confirmed',
-    initial_complaint: 'Demam 3 hari naik turun disertai batuk berdahak',
-    medical_notes: 'Suhu 38.2C, faring hiperemis ringan. Diberikan Paracetamol sirup 3x1 cth dan ambroxol.',
-    queue_number: 'P-001',
-    reschedule_token: '6beebc99-9c0b-4ef8-bb6d-6bb9bd380b22',
-    token_expires_at: new Date(Date.now() + 86400000).toISOString(),
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '7ceebc99-9c0b-4ef8-bb6d-6bb9bd380b33',
-    patient_name: 'Pak Joko Widodo',
-    patient_whatsapp: '081987654321',
-    patient_email: 'joko.w@example.com',
-    service_id: 'f5eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
-    staff_id: 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-    appointment_date: getTodayString(0),
-    start_time: '10:00',
-    end_time: '10:45',
-    status: 'confirmed',
-    initial_complaint: 'Gigi geraham belakang ngilu saat minum dingin',
-    medical_notes: null,
-    queue_number: 'G-002',
-    reschedule_token: '8deebc99-9c0b-4ef8-bb6d-6bb9bd380b44',
-    token_expires_at: new Date(Date.now() + 86400000).toISOString(),
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '9feebc99-9c0b-4ef8-bb6d-6bb9bd380b55',
-    patient_name: 'Ibu Ratna Sari',
-    patient_whatsapp: '081333444555',
-    patient_email: 'ratna.s@example.com',
-    service_id: '27eebc99-9c0b-4ef8-bb6d-6bb9bd380a88',
-    staff_id: 'd3eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
-    appointment_date: getTodayString(1),
-    start_time: '11:00',
-    end_time: '11:30',
-    status: 'confirmed',
-    initial_complaint: 'Kontrol rutin hipertensi dan nyeri tengkuk belakang',
-    medical_notes: null,
-    queue_number: 'D-003',
-    reschedule_token: '1feebc99-9c0b-4ef8-bb6d-6bb9bd380b66',
-    token_expires_at: new Date(Date.now() + 172800000).toISOString(),
-    created_at: new Date().toISOString(),
-  },
-];
+const initialAppointments: Appointment[] = [];
 
-const initialBlockOuts: BlockOut[] = [
-  {
-    id: '38eebc99-9c0b-4ef8-bb6d-6bb9bd380a99',
-    staff_id: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-    block_date: getTodayString(1),
-    start_time: '12:00',
-    end_time: '13:00',
-    reason: 'Istirahat & Visit Rawat Inap',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '49eebc99-9c0b-4ef8-bb6d-6bb9bd380a00',
-    staff_id: 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
-    block_date: getTodayString(2),
-    start_time: '14:00',
-    end_time: '16:00',
-    reason: 'Sterilisasi Unit Dental & Rapat Mutu',
-    created_at: new Date().toISOString(),
-  },
-];
+const initialBlockOuts: BlockOut[] = [];
 
 // Global in-memory cache to retain state across server invocations
 declare global {
