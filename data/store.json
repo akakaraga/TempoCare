@@ -1,0 +1,99 @@
+{
+  "clinic_settings": {
+    "id": "clinic-default-01",
+    "name": "TempoCare Clinic & Hospital",
+    "tagline": "Klinik Pratama & Rumah Sakit Umum",
+    "phone": "021-555-8367",
+    "emergency_phone": "(021) 555-TEMPO",
+    "email": "info@tempocare.clinic",
+    "address": "Jl. Kesehatan No. 45, Jakarta Pusat",
+    "announcement": "Pendaftaran Buka 24 Jam • Langsung Dapat Nomor Antrean",
+    "open_hour": "08:00",
+    "close_hour": "17:00",
+    "updated_at": "2026-11-06T14:39:00.000Z"
+  },
+  "staff": [
+    {
+      "id": "ae85cefc-f4c4-4326-9d48-0791941343ba",
+      "user_id": "d440d747-c10e-41b3-9cca-10f4ff5b3dbb",
+      "full_name": "Admin Klinik",
+      "role": "admin",
+      "specialization": "Kepala Manajemen & Resepsionis RS",
+      "email": "admin.booking@gmail.com",
+      "phone": "",
+      "is_active": true,
+      "practice_days": [
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Kamis",
+        "Jumat"
+      ],
+      "practice_start_time": "08:00:00",
+      "practice_end_time": "17:00:00",
+      "assigned_service_ids": [],
+      "created_at": "2026-11-03T04:44:41.04095+00:00"
+    },
+    {
+      "id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "user_id": null,
+      "full_name": "dr. Rahmat",
+      "role": "doctor",
+      "specialization": "Sp. Gigi",
+      "email": "rahmat@gmail.com",
+      "phone": "089123123123",
+      "is_active": true,
+      "practice_days": [
+        "Senin",
+        "Kamis",
+        "Jumat",
+        "Selasa"
+      ],
+      "practice_start_time": "14:00:00",
+      "practice_end_time": "16:00:00",
+      "assigned_service_ids": [
+        "8c22e2ec-5711-4be0-8b54-3762706c70e2"
+      ],
+      "created_at": "2026-11-06T07:58:27.461+00:00"
+    }
+  ],
+  "services": [
+    {
+      "id": "8c22e2ec-5711-4be0-8b54-3762706c70e2",
+      "name": "Poli Gigi",
+      "description": "",
+      "duration_minutes": 30,
+      "price": 200000,
+      "is_active": true,
+      "created_at": "2026-11-06T07:57:01.786+00:00"
+    }
+  ],
+  "staff_services": [
+    {
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "6cd383e0-0857-4fd7-afd1-488c13f82a2d",
+      "patient_name": "Aka",
+      "patient_whatsapp": "089123123321",
+      "patient_email": "helga.akaga@gmail.com",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2",
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "appointment_date": "2026-11-09",
+      "start_time": "14:30",
+      "end_time": "15:00",
+      "status": "confirmed",
+      "initial_complaint": "Mau Scaling Gigi",
+      "medical_notes": null,
+      "queue_number": "G-001",
+      "reschedule_token": "35b7fdb8-df8c-4b63-a80e-23e15f6aedbb",
+      "token_expires_at": "2026-11-08T07:30:00.000Z",
+      "is_walk_in": false,
+      "created_at": "2026-11-06T07:59:26.208Z"
+    }
+  ],
+  "block_outs": []
+}

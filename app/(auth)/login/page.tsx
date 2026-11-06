@@ -1,5 +1,5 @@
 import { loginAction } from '@/actions/auth';
-import { HeartPulse, Lock } from 'lucide-react';
+import { HeartPulse } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage({
@@ -68,7 +68,7 @@ export default function LoginPage({
               type="submit"
               className="w-full py-2.5 rounded-xl font-bold text-xs bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
             >
-              <Lock className="w-3.5 h-3.5" /> Masuk ke Dasbor
+             Masuk
             </button>
           </form>
 
@@ -77,7 +77,7 @@ export default function LoginPage({
               href="/"
               className="text-xs text-medical-muted hover:text-medical-text underline transition-colors"
             >
-              ← Kembali ke Halaman Pasien
+              ← Kembali ke Beranda
             </Link>
           </div>
         </div>

@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-  title: 'TempoCare - Sistem Reservasi & Manajemen Jadwal Klinik / RS',
+  title: 'TempoCare',
   description: 'Sistem manajemen jadwal medis MVP: Pendaftaran otomatis 24/7, anti double-booking mutlak, dan rekam jejak jadwal tenaga medis.',
 };
 

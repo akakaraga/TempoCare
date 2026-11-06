@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Appointment, Staff, Service, BlockOut, ClinicSettings } from '@/lib/types';
 import {
   createWalkInAppointmentAction,
@@ -67,6 +67,27 @@ export default function AdminDashboardView({
   const [doctors, setDoctors] = useState<Staff[]>(staffList);
   const [serviceList, setServiceList] = useState<Service[]>(services);
   const [settings, setSettings] = useState<ClinicSettings>(initialSettings);
+
+  // Sync state whenever props update from server revalidation
+  useEffect(() => {
+    setAppointments(initialAppointments);
+  }, [initialAppointments]);
+
+  useEffect(() => {
+    setDoctors(staffList);
+  }, [staffList]);
+
+  useEffect(() => {
+    setServiceList(services);
+  }, [services]);
+
+  useEffect(() => {
+    setBlockOuts(initialBlockOuts);
+  }, [initialBlockOuts]);
+
+  useEffect(() => {
+    setSettings(initialSettings);
+  }, [initialSettings]);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
