@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { HeartPulse, CalendarCheck, Stethoscope, Lock } from 'lucide-react';
+import { HeartPulse, CalendarCheck, Stethoscope } from 'lucide-react';
 import { ClinicSettings } from '@/lib/types';
 
 interface NavbarProps {
@@ -37,15 +37,6 @@ export default function Navbar({ clinicSettings }: NavbarProps) {
           >
             <CalendarCheck className="w-4 h-4 text-medical-primary" />
             <span>Lihat Jadwal Saya</span>
-          </Link>
-
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2.5 rounded-xl text-medical-muted hover:text-medical-text hover:bg-medical-subtle transition-colors"
-            title="Khusus Dokter & Staf Rumah Sakit"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Portal Staf</span>
           </Link>
 
           <a

@@ -1,5 +1,5 @@
 import { loginAction } from '@/actions/auth';
-import { HeartPulse, Lock, ShieldCheck, Stethoscope, UserCog } from 'lucide-react';
+import { HeartPulse, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage({
@@ -23,7 +23,7 @@ export default function LoginPage({
           Portal Masuk Staf Medis & RS
         </h2>
         <p className="mt-1 text-xs text-medical-muted">
-          Akses khusus Dokter, Resepsionis, dan Tenaga Medis Faskes
+          Akses terbatas khusus Dokter, Resepsionis, dan Tenaga Medis Faskes
         </p>
       </div>
 
@@ -36,80 +36,37 @@ export default function LoginPage({
             </div>
           )}
 
-          {/* Quick Demo Access Buttons (Medical Review Mode) */}
-          <div className="p-4 bg-medical-subtle rounded-xl border border-medical-primary/20 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-medical-primary">
-              <ShieldCheck className="w-4 h-4" /> Akses Cepat Demo (1-Click Login):
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <form action={loginAction}>
-                <input type="hidden" name="quickRole" value="doctor" />
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-white border border-medical-border hover:border-medical-primary text-medical-text flex items-center justify-center gap-2 shadow-xs transition-all hover:bg-medical-subtle"
-                >
-                  <Stethoscope className="w-4 h-4 text-medical-primary" />
-                  Masuk sbg Dokter
-                </button>
-              </form>
-
-              <form action={loginAction}>
-                <input type="hidden" name="quickRole" value="admin" />
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-3 rounded-lg text-xs font-semibold bg-white border border-medical-border hover:border-medical-primary text-medical-text flex items-center justify-center gap-2 shadow-xs transition-all hover:bg-medical-subtle"
-                >
-                  <UserCog className="w-4 h-4 text-medical-accent" />
-                  Masuk sbg Admin RS
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-medical-muted">atau masuk dengan akun</span>
-            </div>
-          </div>
-
-          {/* Email Form */}
+          {/* Email & Password Form */}
           <form action={loginAction} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-medical-text mb-1">
-                Email Terdaftar Staf Medis
+              <label className="block text-xs font-semibold text-medical-text mb-1.5">
+                Alamat Email Terdaftar
               </label>
               <input
                 type="email"
                 name="email"
                 required
-                placeholder="admin.booking@gmail.com atau dokter@..."
-                defaultValue=""
-                className="w-full px-3.5 py-2.5 text-xs border border-medical-border rounded-xl focus:ring-2 focus:ring-medical-primary outline-none text-medical-text"
+                placeholder="nama@klinik.com"
+                className="w-full px-3.5 py-2.5 text-xs border border-medical-border rounded-xl focus:ring-2 focus:ring-medical-primary focus:border-medical-primary outline-none text-medical-text transition-all"
               />
-              <span className="text-[10px] text-medical-muted mt-1 block">
-                Akun Admin Terdaftar: <code className="font-mono text-medical-primary font-semibold">admin.booking@gmail.com</code> atau <code className="font-mono">admin@tempocare.clinic</code>
-              </span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-medical-text mb-1">
+              <label className="block text-xs font-semibold text-medical-text mb-1.5">
                 Kata Sandi
               </label>
               <input
                 type="password"
                 name="password"
-                defaultValue="password123"
-                className="w-full px-3 py-2 text-xs border border-medical-border rounded-xl focus:ring-2 focus:ring-medical-primary outline-none"
+                required
+                placeholder="••••••••"
+                className="w-full px-3.5 py-2.5 text-xs border border-medical-border rounded-xl focus:ring-2 focus:ring-medical-primary focus:border-medical-primary outline-none transition-all"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl font-bold text-xs bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-sm flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl font-bold text-xs bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-sm flex items-center justify-center gap-2 mt-2"
             >
               <Lock className="w-3.5 h-3.5" /> Masuk ke Dasbor
             </button>
@@ -118,9 +75,9 @@ export default function LoginPage({
           <div className="text-center pt-2">
             <Link
               href="/"
-              className="text-xs text-medical-muted hover:text-medical-text underline"
+              className="text-xs text-medical-muted hover:text-medical-text underline transition-colors"
             >
-              ← Kembali ke Halaman Reservasi Pasien
+              ← Kembali ke Halaman Pasien
             </Link>
           </div>
         </div>

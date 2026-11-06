@@ -26,36 +26,11 @@ function setSessionCookies(
 export async function loginAction(formData: FormData) {
   const email = (formData.get('email') as string)?.trim().toLowerCase();
   const password = (formData.get('password') as string)?.trim();
-  const directRole = formData.get('quickRole') as string;
 
   const cookieStore = cookies();
 
-  // 1. Quick Role 1-Click Login (Safe Demo / Emergency Access)
-  if (directRole) {
-    if (directRole === 'doctor') {
-      const doctor = (await db.getStaffList()).find((s) => s.role === 'doctor');
-      setSessionCookies(
-        cookieStore,
-        'doctor',
-        doctor?.id || 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
-        doctor?.full_name || 'Dr. Budi Santoso, Sp.A'
-      );
-      redirect('/dashboard/doctor');
-    } else if (directRole === 'admin') {
-      const staffList = await db.getStaffList();
-      const admin = staffList.find((s) => s.role === 'admin');
-      setSessionCookies(
-        cookieStore,
-        'admin',
-        admin?.id || 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-        admin?.full_name || 'Dr. Sarah Danastri'
-      );
-      redirect('/dashboard/admin');
-    }
-  }
-
-  if (!email) {
-    redirect('/login?error=' + encodeURIComponent('Silakan masukkan alamat email staf Anda.'));
+  if (!email || !password) {
+    redirect('/login?error=' + encodeURIComponent('Silakan masukkan alamat email dan kata sandi staf Anda.'));
   }
 
   // 2. Try Supabase Auth first (for real Supabase users e.g. admin.booking@gmail.com)

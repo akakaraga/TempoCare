@@ -144,9 +144,6 @@ export default async function HomePage() {
               <Link href="/manage" className="hover:text-medical-primary underline">
                 Cek / Ganti Jadwal Saya
               </Link>
-              <Link href="/login" className="hover:text-medical-primary underline">
-                Portal Khusus Tenaga Medis
-              </Link>
             </div>
           </div>
         </div>
