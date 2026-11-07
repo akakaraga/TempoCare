@@ -41,7 +41,8 @@ import {
   Check,
   X,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  KeyRound
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -134,8 +135,10 @@ export default function AdminDashboardView({
   const [docName, setDocName] = useState<string>('');
   const [docSpecialization, setDocSpecialization] = useState<string>('');
   const [docEmail, setDocEmail] = useState<string>('');
+  const [docPassword, setDocPassword] = useState<string>('');
+  const [editDocPassword, setEditDocPassword] = useState<string>('');
   const [docPhone, setDocPhone] = useState<string>('');
-  const [docRole, setDocRole] = useState<'doctor' | 'admin' | 'nurse'>('doctor');
+  const [docRole, setDocRole] = useState<'doctor' | 'admin' | 'nurse' | 'receptionist'>('doctor');
   const [docPracticeDays, setDocPracticeDays] = useState<string[]>([
     'Senin',
     'Selasa',
@@ -249,6 +252,7 @@ export default function AdminDashboardView({
         role: docRole,
         specialization: docSpecialization,
         email: docEmail,
+        password: docPassword || undefined,
         phone: docPhone,
         practice_days: docPracticeDays,
         practice_start_time: docStartTime,
@@ -258,11 +262,12 @@ export default function AdminDashboardView({
 
       if (res.success && res.staff) {
         setDoctors([...doctors, res.staff]);
-        toast.success(`Dokter ${res.staff.full_name} berhasil ditambahkan ke sistem!`);
+        toast.success(`Akun staf & dokter ${res.staff.full_name} berhasil dibuat!`);
         setShowAddDoctorModal(false);
         setDocName('');
         setDocSpecialization('');
         setDocEmail('');
+        setDocPassword('');
         setDocPhone('');
         setDocAssignedServices([]);
       } else {
@@ -277,11 +282,15 @@ export default function AdminDashboardView({
     e.preventDefault();
     if (!showEditDoctorModal) return;
     try {
-      const res = await updateStaffAction(showEditDoctorModal.id, showEditDoctorModal);
+      const res = await updateStaffAction(showEditDoctorModal.id, {
+        ...showEditDoctorModal,
+        ...(editDocPassword ? { password: editDocPassword } : {}),
+      });
       if (res.success && res.staff) {
         setDoctors(doctors.map((d) => (d.id === res.staff!.id ? res.staff! : d)));
         toast.success(`Data dokter ${res.staff.full_name} berhasil disimpan!`);
         setShowEditDoctorModal(null);
+        setEditDocPassword('');
       } else {
         toast.error(res.error || 'Gagal mengupdate dokter');
       }
@@ -891,12 +900,12 @@ export default function AdminDashboardView({
               </button>
             </div>
 
-            {doctors.filter((d) => d.role === 'doctor').length === 0 ? (
+            {doctors.length === 0 ? (
               <div className="bg-white p-12 rounded-2xl border border-dashed border-gray-200 text-center text-medical-muted">
                 <Stethoscope className="w-10 h-10 text-medical-primary/50 mx-auto mb-3" />
-                <h4 className="font-bold text-sm text-medical-text">Belum ada data dokter</h4>
+                <h4 className="font-bold text-sm text-medical-text">Belum ada data dokter & staf</h4>
                 <p className="text-xs text-medical-muted mt-1 max-w-sm mx-auto">
-                  Klik tombol &ldquo;Tambah Dokter Baru&rdquo; di atas untuk mendaftarkan nama dokter, spesialisasi, poliklinik yang dilayani, dan jadwal praktiknya.
+                  Klik tombol &ldquo;Tambah Dokter / Staf Medis&rdquo; di atas untuk mendaftarkan nama, peran, spesialisasi, dan kredensial login akunnya.
                 </p>
               </div>
             ) : (
@@ -930,9 +939,14 @@ export default function AdminDashboardView({
                       </div>
 
                       <h4 className="font-bold text-sm text-medical-text mt-3">{doc.full_name}</h4>
-                      <span className="inline-block text-[11px] font-semibold text-medical-primary bg-medical-subtle px-2 py-0.5 rounded mt-1">
-                        {doc.specialization || 'Dokter Umum'}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                        <span className="inline-block text-[11px] font-semibold text-medical-primary bg-medical-subtle px-2 py-0.5 rounded">
+                          {doc.specialization || 'Dokter Umum'}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          <KeyRound className="w-2.5 h-2.5" /> Akun Login Aktif
+                        </span>
+                      </div>
 
                       {/* Contacts */}
                       <div className="mt-3 text-xs text-medical-muted space-y-1">
@@ -1270,8 +1284,9 @@ export default function AdminDashboardView({
                     className="w-full px-2 py-2 rounded-xl border border-medical-border bg-white"
                   >
                     <option value="doctor">Dokter</option>
+                    <option value="nurse">Perawat / Tenaga Medis</option>
+                    <option value="receptionist">Resepsionis / Front Office</option>
                     <option value="admin">Admin RS</option>
-                    <option value="nurse">Perawat</option>
                   </select>
                 </div>
                 <div>
@@ -1306,6 +1321,28 @@ export default function AdminDashboardView({
                     value={docPhone}
                     onChange={(e) => setDocPhone(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-medical-border"
+                  />
+                </div>
+              </div>
+
+              {/* Account Credentials */}
+              <div className="p-3 bg-medical-subtle/50 rounded-xl border border-medical-border/60 space-y-2">
+                <div className="flex items-center gap-1.5 font-bold text-medical-primary">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Kredensial Login Akun Dokter / Staf</span>
+                </div>
+                <p className="text-[11px] text-medical-muted">
+                  Kata sandi ini digunakan oleh dokter/staf medis untuk login mandiri di <strong>/login</strong>.
+                </p>
+                <div>
+                  <label className="block font-semibold mb-1">Kata Sandi Akun *</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Minimal 6 karakter (contoh: dokter123)"
+                    value={docPassword}
+                    onChange={(e) => setDocPassword(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-medical-border bg-white focus:ring-2 focus:ring-medical-primary outline-none"
                   />
                 </div>
               </div>
@@ -1560,6 +1597,24 @@ export default function AdminDashboardView({
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Reset Password */}
+              <div className="p-3 bg-medical-subtle/50 rounded-xl border border-medical-border/60 space-y-1.5">
+                <div className="flex items-center gap-1.5 font-bold text-medical-primary">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>Reset / Ganti Kata Sandi Login Staf</span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="Kosongkan jika tidak ingin mengubah kata sandi"
+                  value={editDocPassword}
+                  onChange={(e) => setEditDocPassword(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-medical-border bg-white outline-none focus:ring-2 focus:ring-medical-primary"
+                />
+                <span className="text-[10px] text-medical-muted block">
+                  Isi hanya jika dokter/staf lupa kata sandi atau ingin memperbarui kredensial login.
+                </span>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-medical-border">

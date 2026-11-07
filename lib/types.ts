@@ -9,6 +9,7 @@ export interface Staff {
   role: StaffRole;
   specialization?: string | null;
   email: string;
+  password?: string | null;
   phone?: string | null;
   is_active: boolean;
   practice_days?: string[]; // e.g. ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']

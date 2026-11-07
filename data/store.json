@@ -35,6 +35,28 @@
       "created_at": "2026-11-03T04:44:41.04095+00:00"
     },
     {
+      "id": "a4d9a72f-5569-4e51-ad42-4f1721d30122",
+      "user_id": "babfc2bb-8c4e-4e20-89a3-d09a119f8d43",
+      "full_name": "dr. Budi Anton",
+      "role": "doctor",
+      "specialization": "Umum",
+      "email": "budianton@gmail.com",
+      "phone": "",
+      "is_active": true,
+      "practice_days": [
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Jumat"
+      ],
+      "practice_start_time": "19:00:00",
+      "practice_end_time": "21:00:00",
+      "assigned_service_ids": [
+        "601eb55f-7d16-44e3-bc1e-7de15db91a4c"
+      ],
+      "created_at": "2026-11-07T02:45:11.883+00:00"
+    },
+    {
       "id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
       "user_id": null,
       "full_name": "dr. Rahmat",
@@ -66,15 +88,47 @@
       "price": 200000,
       "is_active": true,
       "created_at": "2026-11-06T07:57:01.786+00:00"
+    },
+    {
+      "id": "601eb55f-7d16-44e3-bc1e-7de15db91a4c",
+      "name": "Poli Umum",
+      "description": "",
+      "duration_minutes": 25,
+      "price": 50000,
+      "is_active": true,
+      "created_at": "2026-11-07T02:45:54.033+00:00"
     }
   ],
   "staff_services": [
     {
       "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
       "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2"
+    },
+    {
+      "staff_id": "a4d9a72f-5569-4e51-ad42-4f1721d30122",
+      "service_id": "601eb55f-7d16-44e3-bc1e-7de15db91a4c"
     }
   ],
   "appointments": [
+    {
+      "id": "f643ca9a-f08f-48e9-a0ac-df2f406dec86",
+      "patient_name": "Helga Aka Wibistara",
+      "patient_whatsapp": "-",
+      "patient_email": "helga.akaga@gmail.com",
+      "service_id": "601eb55f-7d16-44e3-bc1e-7de15db91a4c",
+      "staff_id": "a4d9a72f-5569-4e51-ad42-4f1721d30122",
+      "appointment_date": "2026-11-09",
+      "start_time": "19:25",
+      "end_time": "19:50",
+      "status": "confirmed",
+      "initial_complaint": "Asam Lambung",
+      "medical_notes": null,
+      "queue_number": "U-002",
+      "reschedule_token": "569b223c-f2d9-4e82-bc3d-8f62c2edf587",
+      "token_expires_at": "2026-11-08T12:25:00.000Z",
+      "is_walk_in": false,
+      "created_at": "2026-11-07T02:48:50.739Z"
+    },
     {
       "id": "6cd383e0-0857-4fd7-afd1-488c13f82a2d",
       "patient_name": "Aka",

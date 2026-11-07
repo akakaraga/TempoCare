@@ -75,22 +75,28 @@ export async function loginAction(formData: FormData) {
     }
   }
 
-  // 3. Fallback: Match against staff table directly
+  // 3. Fallback: Match against staff table / persistent store directly
+  let matchedStaff = null;
   try {
     const staffList = await db.getStaffList();
-    const matched = staffList.find((s) => s.email.toLowerCase() === email);
-
-    if (matched) {
-      setSessionCookies(cookieStore, matched.role, matched.id, matched.full_name);
-
-      if (matched.role === 'admin') {
-        redirect('/dashboard/admin');
-      } else {
-        redirect('/dashboard/doctor');
-      }
-    }
+    matchedStaff = staffList.find((s) => s.email.toLowerCase() === email);
   } catch (err) {
     console.error('Staff match error:', err);
+  }
+
+  if (matchedStaff) {
+    // Verifikasi kata sandi jika staf memiliki kata sandi terdaftar
+    if (matchedStaff.password && matchedStaff.password !== password) {
+      redirect('/login?error=' + encodeURIComponent('Kata sandi salah. Silakan periksa kembali kata sandi Anda.'));
+    }
+
+    setSessionCookies(cookieStore, matchedStaff.role, matchedStaff.id, matchedStaff.full_name);
+
+    if (matchedStaff.role === 'admin') {
+      redirect('/dashboard/admin');
+    } else {
+      redirect('/dashboard/doctor');
+    }
   }
 
   // Fallback for registered admin email

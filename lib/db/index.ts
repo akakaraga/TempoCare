@@ -241,16 +241,40 @@ export const db = {
       assigned_service_ids: staffData.assigned_service_ids || [],
     };
 
-    // 1. Simpan ke local store persisten terlebih dahulu (Dijamin Tidak Reset)
+    const supabase = getSupabaseClient();
+
+    // 1. Buat akun login staf di Supabase Auth jika password disediakan
+    if (supabase && staffData.password) {
+      try {
+        const { data: authUser, error: authErr } = await supabase.auth.admin.createUser({
+          email: staffData.email,
+          password: staffData.password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: staffData.full_name,
+            role: staffData.role,
+          },
+        });
+        if (!authErr && authUser?.user) {
+          newStaff.user_id = authUser.user.id;
+        } else if (authErr) {
+          console.warn('[Supabase Auth createUser]', authErr.message);
+        }
+      } catch (err) {
+        console.warn('[Supabase Auth createUser Exception]', err);
+      }
+    }
+
+    // 2. Simpan ke local store persisten terlebih dahulu (Dijamin Tidak Reset)
     const store = loadLocalStore();
     store.staff = [newStaff, ...(store.staff || []).filter((s) => s.id !== newStaff.id)];
     saveLocalStore(store);
 
-    // 2. Simpan ke Supabase PostgreSQL
-    const supabase = getSupabaseClient();
+    // 3. Simpan ke Supabase PostgreSQL tabel staff
     if (supabase) {
       try {
-        const { data, error } = await supabase.from('staff').insert(newStaff).select().single();
+        const { password, ...staffDbRecord } = newStaff;
+        const { data, error } = await supabase.from('staff').insert(staffDbRecord).select().single();
         if (!error && data) {
           newStaff.id = data.id;
         } else if (error) {
@@ -275,7 +299,8 @@ export const db = {
     const index = list.findIndex((s) => s.id === id);
     if (index === -1) return null;
 
-    const updated = { ...list[index], ...updates };
+    const existing = list[index];
+    const updated = { ...existing, ...updates };
     list[index] = updated;
     store.staff = list;
     saveLocalStore(store);
@@ -286,8 +311,20 @@ export const db = {
 
     const supabase = getSupabaseClient();
     if (supabase) {
+      // Jika kata sandi baru diisi dan akun memiliki user_id di Supabase Auth
+      if (updates.password && existing.user_id) {
+        try {
+          await supabase.auth.admin.updateUserById(existing.user_id, {
+            password: updates.password,
+          });
+        } catch (err) {
+          console.warn('[Supabase Auth updateUserById]', err);
+        }
+      }
+
       try {
-        await supabase.from('staff').update(updates).eq('id', id);
+        const { password, ...staffUpdates } = updates;
+        await supabase.from('staff').update(staffUpdates).eq('id', id);
       } catch (err) {
         console.warn('[Supabase updateStaff]', err);
       }

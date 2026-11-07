@@ -246,6 +246,7 @@ export async function createStaffAction(data: {
   role: 'doctor' | 'admin' | 'nurse' | 'receptionist';
   specialization?: string;
   email: string;
+  password?: string;
   phone?: string;
   practice_days?: string[];
   practice_start_time?: string;
