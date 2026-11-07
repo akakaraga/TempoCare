@@ -101,12 +101,12 @@
   ],
   "staff_services": [
     {
-      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
-      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2"
-    },
-    {
       "staff_id": "a4d9a72f-5569-4e51-ad42-4f1721d30122",
       "service_id": "601eb55f-7d16-44e3-bc1e-7de15db91a4c"
+    },
+    {
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2"
     }
   ],
   "appointments": [

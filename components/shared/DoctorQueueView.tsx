@@ -5,19 +5,17 @@ import { Appointment, Staff } from '@/lib/types';
 import { updateMedicalNotesAction } from '@/actions';
 import { logoutAction } from '@/actions/auth';
 import {
-  HeartPulse,
-  LogOut,
   Calendar as CalendarIcon,
   Clock,
   User,
-  Phone,
   CheckCircle2,
-  XCircle,
   FileEdit,
   Stethoscope,
-  Filter,
   Check,
-  AlertCircle
+  AlertCircle,
+  LogOut,
+  CalendarDays,
+  ListFilter
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -33,7 +31,8 @@ export default function DoctorQueueView({
   selectedDate,
 }: DoctorQueueViewProps) {
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
-  const [dateFilter, setDateFilter] = useState<string>(selectedDate);
+  const [viewMode, setViewMode] = useState<'today' | 'upcoming' | 'all' | 'custom'>('all');
+  const [customDate, setCustomDate] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Medical notes modal state
@@ -41,21 +40,40 @@ export default function DoctorQueueView({
   const [notesInput, setNotesInput] = useState<string>('');
   const [savingNotes, setSavingNotes] = useState<boolean>(false);
 
-  // Filter appointments
+  const todayStr = selectedDate || new Date().toISOString().split('T')[0];
+
+  // Helper date calculations
+  const totalToday = appointments.filter((a) => a.appointment_date === todayStr).length;
+  const pendingToday = appointments.filter(
+    (a) => a.appointment_date === todayStr && a.status === 'confirmed'
+  ).length;
+  const completedToday = appointments.filter(
+    (a) => a.appointment_date === todayStr && a.status === 'completed'
+  ).length;
+  const upcomingAppointments = appointments.filter(
+    (a) => a.appointment_date > todayStr && a.status !== 'cancelled'
+  );
+  const upcomingCount = upcomingAppointments.length;
+
+  // Filter list based on view mode and status
   const filteredList = appointments.filter((a) => {
-    const matchDate = !dateFilter || a.appointment_date === dateFilter;
+    // 1. Date match
+    let matchDate = true;
+    if (viewMode === 'today') {
+      matchDate = a.appointment_date === todayStr;
+    } else if (viewMode === 'upcoming') {
+      matchDate = a.appointment_date > todayStr;
+    } else if (viewMode === 'custom') {
+      matchDate = !customDate || a.appointment_date === customDate;
+    } else if (viewMode === 'all') {
+      matchDate = true;
+    }
+
+    // 2. Status match
     const matchStatus = statusFilter === 'all' || a.status === statusFilter;
+
     return matchDate && matchStatus;
   });
-
-  // Daily statistics
-  const totalToday = appointments.filter((a) => a.appointment_date === dateFilter).length;
-  const completedToday = appointments.filter(
-    (a) => a.appointment_date === dateFilter && a.status === 'completed'
-  ).length;
-  const pendingToday = appointments.filter(
-    (a) => a.appointment_date === dateFilter && a.status === 'confirmed'
-  ).length;
 
   const handleOpenNotes = (apt: Appointment) => {
     setEditingAppointment(apt);
@@ -92,6 +110,24 @@ export default function DoctorQueueView({
     }
   };
 
+  const formatDisplayDate = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.toLocaleDateString('id-ID', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-medical-bg">
       {/* Top Navbar */}
@@ -105,7 +141,7 @@ export default function DoctorQueueView({
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base text-medical-text">{doctor.full_name}</span>
                 <span className="text-[10px] font-bold bg-medical-primary/10 text-medical-primary px-2 py-0.5 rounded-full">
-                  Dokter Praktek
+                  Dokter Praktik
                 </span>
               </div>
               <span className="text-xs text-medical-muted block">
@@ -118,7 +154,7 @@ export default function DoctorQueueView({
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" /> Keluar
               </button>
@@ -130,20 +166,38 @@ export default function DoctorQueueView({
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-medical-muted block">Total Antrean Hari Ini</span>
-              <span className="text-2xl font-extrabold text-medical-text mt-1 block">{totalToday} Pasien</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div
+            onClick={() => setViewMode('today')}
+            className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer ${
+              viewMode === 'today'
+                ? 'border-medical-primary ring-2 ring-medical-primary/20 shadow-md'
+                : 'border-medical-border shadow-soft hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-medical-muted block">Total Antrean Hari Ini</span>
+                <span className="text-2xl font-extrabold text-medical-text mt-1 block">{totalToday} Pasien</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-medical-subtle text-medical-primary flex items-center justify-center font-bold">
+                <User className="w-5 h-5" />
+              </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-medical-subtle text-medical-primary flex items-center justify-center font-bold">
-              <User className="w-5 h-5" />
-            </div>
+            <span className="text-[11px] text-medical-primary mt-2 block font-medium">
+              Tanggal: {formatDisplayDate(todayStr)}
+            </span>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex items-center justify-between">
+          <div
+            onClick={() => {
+              setViewMode('today');
+              setStatusFilter('confirmed');
+            }}
+            className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex items-center justify-between hover:border-gray-300 transition-all cursor-pointer"
+          >
             <div>
-              <span className="text-xs font-semibold text-medical-muted block">Menunggu Giliran</span>
+              <span className="text-xs font-semibold text-medical-muted block">Menunggu Giliran (Hari Ini)</span>
               <span className="text-2xl font-extrabold text-amber-600 mt-1 block">{pendingToday} Pasien</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
@@ -151,7 +205,13 @@ export default function DoctorQueueView({
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex items-center justify-between">
+          <div
+            onClick={() => {
+              setViewMode('today');
+              setStatusFilter('completed');
+            }}
+            className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex items-center justify-between hover:border-gray-300 transition-all cursor-pointer"
+          >
             <div>
               <span className="text-xs font-semibold text-medical-muted block">Selesai Ditangani</span>
               <span className="text-2xl font-extrabold text-emerald-600 mt-1 block">{completedToday} Pasien</span>
@@ -160,75 +220,226 @@ export default function DoctorQueueView({
               <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
+
+          <div
+            onClick={() => setViewMode('upcoming')}
+            className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer ${
+              viewMode === 'upcoming'
+                ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-md'
+                : 'border-medical-border shadow-soft hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-medical-muted block">Jadwal Pasien Mendatang</span>
+                <span className="text-2xl font-extrabold text-indigo-600 mt-1 block">{upcomingCount} Pasien</span>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+            </div>
+            <span className="text-[11px] text-indigo-600 mt-2 block font-medium">
+              {upcomingCount > 0 ? 'Ada booking tanggal berikutnya' : 'Belum ada reservasi baru'}
+            </span>
+          </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="bg-white p-4 rounded-2xl border border-medical-border shadow-soft flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-medical-text">
-              <CalendarIcon className="w-4 h-4 text-medical-primary" /> Tanggal:
+        {/* Smart Notice if Today is empty but Upcoming has patients */}
+        {totalToday === 0 && upcomingCount > 0 && viewMode === 'today' && (
+          <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-sky-900">Jadwal Pasien Mendatang Ditemukan</h4>
+                <p className="text-xs text-sky-700">
+                  Tidak ada jadwal pasien hari ini ({formatDisplayDate(todayStr)}), namun terdapat{' '}
+                  <strong>{upcomingCount} pasien terdaftar</strong> untuk tanggal mendatang.
+                </p>
+              </div>
             </div>
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-medical-border text-xs font-semibold text-medical-text focus:ring-2 focus:ring-medical-primary outline-none"
-            />
+            <button
+              type="button"
+              onClick={() => setViewMode('upcoming')}
+              className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl transition-colors shrink-0 shadow-xs cursor-pointer"
+            >
+              Buka Jadwal Mendatang ({upcomingCount}) →
+            </button>
+          </div>
+        )}
+
+        {/* View Switcher & Filters */}
+        <div className="bg-white p-4 rounded-2xl border border-medical-border shadow-soft flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+          {/* View Mode Tabs */}
+          <div className="flex items-center gap-1.5 bg-gray-100/80 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('all');
+                setCustomDate('');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'all'
+                  ? 'bg-white text-medical-primary shadow-xs'
+                  : 'text-medical-muted hover:text-medical-text'
+              }`}
+            >
+              Semua Jadwal ({appointments.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('today');
+                setCustomDate('');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'today'
+                  ? 'bg-white text-medical-primary shadow-xs'
+                  : 'text-medical-muted hover:text-medical-text'
+              }`}
+            >
+              Hari Ini ({totalToday})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('upcoming');
+                setCustomDate('');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'upcoming'
+                  ? 'bg-white text-indigo-600 shadow-xs'
+                  : 'text-medical-muted hover:text-medical-text'
+              }`}
+            >
+              Mendatang ({upcomingCount})
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <span className="text-xs text-medical-muted font-medium">Filter Status:</span>
-            {['all', 'confirmed', 'completed', 'cancelled'].map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                className={`text-xs px-2.5 py-1 rounded-lg font-semibold capitalize transition-colors ${
-                  statusFilter === st
-                    ? 'bg-medical-primary text-white'
-                    : 'bg-gray-100 text-medical-muted hover:bg-gray-200'
-                }`}
-              >
-                {st === 'all' ? 'Semua' : st === 'confirmed' ? 'Menunggu' : st === 'completed' ? 'Selesai' : 'Batal'}
-              </button>
-            ))}
+          {/* Date Picker & Status Filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-medical-muted flex items-center gap-1">
+                <CalendarIcon className="w-3.5 h-3.5 text-medical-primary" /> Tanggal:
+              </span>
+              <input
+                type="date"
+                value={viewMode === 'custom' ? customDate : viewMode === 'today' ? todayStr : ''}
+                onChange={(e) => {
+                  setCustomDate(e.target.value);
+                  setViewMode('custom');
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-medical-border text-xs font-semibold text-medical-text focus:ring-2 focus:ring-medical-primary outline-none"
+              />
+              {viewMode === 'custom' && customDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomDate('');
+                    setViewMode('all');
+                  }}
+                  className="text-[11px] text-rose-600 hover:underline font-semibold"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
+              <span className="text-xs font-semibold text-medical-muted flex items-center gap-1">
+                <ListFilter className="w-3.5 h-3.5" /> Status:
+              </span>
+              {['all', 'confirmed', 'completed', 'cancelled'].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setStatusFilter(st)}
+                  className={`text-xs px-2.5 py-1 rounded-lg font-semibold capitalize transition-colors cursor-pointer ${
+                    statusFilter === st
+                      ? 'bg-medical-primary text-white shadow-xs'
+                      : 'bg-gray-100 text-medical-muted hover:bg-gray-200'
+                  }`}
+                >
+                  {st === 'all'
+                    ? 'Semua'
+                    : st === 'confirmed'
+                    ? 'Menunggu'
+                    : st === 'completed'
+                    ? 'Selesai'
+                    : 'Batal'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Patient Queue Table */}
         <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
           <div className="px-6 py-4 border-b border-medical-border flex items-center justify-between bg-medical-subtle/30">
-            <h3 className="text-base font-bold text-medical-text">
-              Daftar Antrean Pasien Dokter ({filteredList.length} Jadwal)
-            </h3>
-            <span className="text-xs text-medical-muted">Diurutkan berdasarkan jam mulai</span>
+            <div>
+              <h3 className="text-base font-bold text-medical-text">
+                Daftar Antrean Pasien Dokter ({filteredList.length} Jadwal)
+              </h3>
+              <p className="text-xs text-medical-muted mt-0.5">
+                {viewMode === 'all'
+                  ? 'Menampilkan seluruh jadwal pasien yang terdaftar'
+                  : viewMode === 'today'
+                  ? `Jadwal pasien hari ini (${formatDisplayDate(todayStr)})`
+                  : viewMode === 'upcoming'
+                  ? 'Jadwal pasien untuk hari-hari mendatang'
+                  : `Jadwal pasien pada tanggal ${formatDisplayDate(customDate)}`}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-medical-muted bg-white px-2.5 py-1 rounded-lg border border-medical-border">
+              Total Database: {appointments.length} Pasien
+            </span>
           </div>
 
           {filteredList.length === 0 ? (
-            <div className="p-12 text-center text-medical-muted space-y-2">
-              <CalendarIcon className="w-8 h-8 text-gray-300 mx-auto" />
-              <p className="text-sm font-semibold">Tidak ada jadwal pasien pada filter tanggal ini.</p>
-              <p className="text-xs">Pasien yang mendaftar online akan otomatis muncul di sini.</p>
+            <div className="p-12 text-center text-medical-muted space-y-3">
+              <CalendarIcon className="w-10 h-10 text-gray-300 mx-auto" />
+              <div>
+                <p className="text-sm font-semibold text-medical-text">
+                  Tidak ada jadwal pasien pada filter saat ini.
+                </p>
+                <p className="text-xs text-medical-muted mt-1">
+                  {viewMode === 'today' && upcomingCount > 0
+                    ? `Namun ada ${upcomingCount} jadwal di hari mendatang. Silakan klik tab "Mendatang" atau "Semua Jadwal".`
+                    : 'Pasien yang mendaftar online atau walk-in dari admin akan otomatis tampil di sini.'}
+                </p>
+              </div>
+              {upcomingCount > 0 && viewMode !== 'upcoming' && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode('upcoming')}
+                  className="px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Lihat {upcomingCount} Jadwal Mendatang
+                </button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-gray-50/80 text-medical-muted uppercase tracking-wider text-[11px] border-b border-gray-100">
                   <tr>
-                    <th className="py-3 px-4">No. Antrean</th>
-                    <th className="py-3 px-4">Jam</th>
-                    <th className="py-3 px-4">Nama Pasien</th>
-                    <th className="py-3 px-4">Kontak</th>
-                    <th className="py-3 px-4">Layanan</th>
-                    <th className="py-3 px-4">Keluhan Awal</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Aksi Tindakan</th>
+                    <th className="py-3.5 px-4 font-bold">No. Antrean</th>
+                    <th className="py-3.5 px-4 font-bold">Tanggal & Jam</th>
+                    <th className="py-3.5 px-4 font-bold">Nama Pasien</th>
+                    <th className="py-3.5 px-4 font-bold">Kontak</th>
+                    <th className="py-3.5 px-4 font-bold">Layanan</th>
+                    <th className="py-3.5 px-4 font-bold">Keluhan Awal</th>
+                    <th className="py-3.5 px-4 font-bold">Status</th>
+                    <th className="py-3.5 px-4 font-bold text-right">Aksi Tindakan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredList.map((apt) => (
                     <tr key={apt.id} className="hover:bg-medical-subtle/20 transition-colors">
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <span className="font-extrabold text-sm text-medical-primary font-mono">
                           {apt.queue_number || 'A-001'}
                         </span>
@@ -238,23 +449,34 @@ export default function DoctorQueueView({
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-semibold text-medical-text">
-                        {apt.start_time} - {apt.end_time}
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-medical-text block">
+                          {formatDisplayDate(apt.appointment_date)}
+                        </span>
+                        <span className="text-xs text-medical-muted flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3 text-medical-primary" />
+                          {apt.start_time} - {apt.end_time} WIB
+                        </span>
                       </td>
-                      <td className="py-3 px-4 font-bold text-medical-text">
+                      <td className="py-3.5 px-4 font-bold text-medical-text">
                         {apt.patient_name}
                       </td>
-                      <td className="py-3 px-4 text-medical-muted">
-                        <span className="block font-mono">{apt.patient_whatsapp}</span>
-                        {apt.patient_email && <span className="text-[10px] text-gray-400 block">{apt.patient_email}</span>}
+                      <td className="py-3.5 px-4 text-medical-muted">
+                        <span className="block font-mono text-medical-text">{apt.patient_whatsapp || '-'}</span>
+                        {apt.patient_email && (
+                          <span className="text-[10px] text-gray-400 block">{apt.patient_email}</span>
+                        )}
                       </td>
-                      <td className="py-3 px-4 font-medium text-medical-text">
-                        {apt.service?.name}
+                      <td className="py-3.5 px-4 font-medium text-medical-text">
+                        {apt.service?.name || 'Poliklinik'}
                       </td>
-                      <td className="py-3 px-4 max-w-xs text-medical-muted truncate" title={apt.initial_complaint || ''}>
+                      <td
+                        className="py-3.5 px-4 max-w-xs text-medical-muted truncate"
+                        title={apt.initial_complaint || ''}
+                      >
                         {apt.initial_complaint || '-'}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-3.5 px-4">
                         <span
                           className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
                             apt.status === 'confirmed'
@@ -271,14 +493,14 @@ export default function DoctorQueueView({
                             : 'Batal'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-3.5 px-4 text-right">
                         <button
                           type="button"
                           onClick={() => handleOpenNotes(apt)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors shadow-xs"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors shadow-xs cursor-pointer"
                         >
                           <FileEdit className="w-3.5 h-3.5" />
-                          {apt.medical_notes ? 'Lihat/Edit Catatan' : 'Periksa & Catat Medis'}
+                          {apt.medical_notes ? 'Lihat/Edit Catatan' : 'Periksa & Catat'}
                         </button>
                       </td>
                     </tr>
@@ -303,11 +525,14 @@ export default function DoctorQueueView({
                 <h3 className="text-base font-bold text-medical-text">
                   {editingAppointment.patient_name}
                 </h3>
+                <span className="text-xs text-medical-muted">
+                  Tanggal: {formatDisplayDate(editingAppointment.appointment_date)} • {editingAppointment.start_time} WIB
+                </span>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingAppointment(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -342,7 +567,7 @@ export default function DoctorQueueView({
                   type="button"
                   disabled={savingNotes}
                   onClick={() => handleSaveNotes('cancelled')}
-                  className="w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200"
+                  className="w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer"
                 >
                   Tandai Batal / No-Show
                 </button>
@@ -352,7 +577,7 @@ export default function DoctorQueueView({
                     type="button"
                     disabled={savingNotes}
                     onClick={() => handleSaveNotes('confirmed')}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-medical-border text-medical-muted hover:text-medical-text"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-medical-border text-medical-muted hover:text-medical-text cursor-pointer"
                   >
                     Simpan Draf Saja
                   </button>
@@ -361,7 +586,7 @@ export default function DoctorQueueView({
                     type="button"
                     disabled={savingNotes || !notesInput.trim()}
                     onClick={() => handleSaveNotes('completed')}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5" />
                     {savingNotes ? 'Menyimpan...' : 'Selesai & Tutup Sesi'}
@@ -375,4 +600,3 @@ export default function DoctorQueueView({
     </div>
   );
 }
-

@@ -582,33 +582,47 @@ export const db = {
     date?: string;
     status?: string;
   }): Promise<Appointment[]> {
+    const store = loadLocalStore();
+    let allAppointments: Appointment[] = [...(store.appointments || [])];
+
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        let query = supabase.from('appointments').select('*').order('appointment_date').order('start_time');
-        if (filters?.staffId) query = query.eq('staff_id', filters.staffId);
-        if (filters?.date) query = query.eq('appointment_date', filters.date);
-        if (filters?.status) query = query.eq('status', filters.status);
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('*')
+          .order('appointment_date')
+          .order('start_time');
 
-        const { data, error } = await query;
         if (!error && data && data.length > 0) {
-          const store = loadLocalStore();
-          return (data as Appointment[]).map((a) => ({
-            ...a,
-            staff: (store.staff || []).find((s) => s.id === a.staff_id),
-            service: (store.services || []).find((svc) => svc.id === a.service_id),
-          }));
+          // Merge Supabase data dengan local store (menghindari data hilang jika salah satu layer tertinggal)
+          const localIds = new Set(allAppointments.map((a) => a.id));
+          const newFromSupabase = (data as Appointment[]).filter((d) => !localIds.has(d.id));
+          allAppointments = [...allAppointments, ...newFromSupabase];
         }
       } catch (err) {
         console.warn('[Supabase getAppointments]', err);
       }
     }
 
-    const store = loadLocalStore();
-    let list = store.appointments || [];
-    if (filters?.staffId) list = list.filter((a) => a.staff_id === filters.staffId);
-    if (filters?.date) list = list.filter((a) => a.appointment_date === filters.date);
-    if (filters?.status) list = list.filter((a) => a.status === filters.status);
+    let list = allAppointments;
+
+    if (filters?.staffId) {
+      list = list.filter((a) => a.staff_id === filters.staffId);
+    }
+    if (filters?.date) {
+      list = list.filter((a) => a.appointment_date === filters.date);
+    }
+    if (filters?.status) {
+      list = list.filter((a) => a.status === filters.status);
+    }
+
+    // Urutkan berdasarkan tanggal & waktu mulai
+    list.sort((a, b) => {
+      const cmpDate = a.appointment_date.localeCompare(b.appointment_date);
+      if (cmpDate !== 0) return cmpDate;
+      return a.start_time.localeCompare(b.start_time);
+    });
 
     return list.map((a) => ({
       ...a,

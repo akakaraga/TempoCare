@@ -11,14 +11,14 @@ export default async function DoctorDashboardPage() {
 
   const staffList = await db.getStaffList();
   // Find doctor or fallback to first doctor in list
-  let currentDoctor = staffList.find((s) => s.id === staffId);
+  let currentDoctor = staffList.find((s) => s.id === staffId || s.user_id === staffId);
   if (!currentDoctor) {
     currentDoctor = staffList.find((s) => s.role === 'doctor') || staffList[0];
   }
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // Fetch appointments for this doctor
+  // Fetch appointments for this doctor (seluruh jadwal untuk dokter ini)
   const appointments = await db.getAppointments({
     staffId: currentDoctor.id,
   });
