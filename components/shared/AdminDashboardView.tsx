@@ -42,7 +42,11 @@ import {
   X,
   ExternalLink,
   ChevronRight,
-  KeyRound
+  KeyRound,
+  FileText,
+  ClipboardList,
+  Copy,
+  Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -108,6 +112,8 @@ export default function AdminDashboardView({
   const [showEditDoctorModal, setShowEditDoctorModal] = useState<Staff | null>(null);
   const [showAddServiceModal, setShowAddServiceModal] = useState<boolean>(false);
   const [showEditServiceModal, setShowEditServiceModal] = useState<Service | null>(null);
+  const [viewingNotesAppointment, setViewingNotesAppointment] = useState<Appointment | null>(null);
+  const [copiedNotes, setCopiedNotes] = useState<boolean>(false);
 
   // Walk-in form states
   const [walkInName, setWalkInName] = useState<string>('');
@@ -667,6 +673,7 @@ export default function AdminDashboardView({
                       <th className="py-3 px-4">WhatsApp</th>
                       <th className="py-3 px-4">Dokter Bertugas</th>
                       <th className="py-3 px-4">Layanan</th>
+                      <th className="py-3 px-4">Catatan Dokter / Resep</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Aksi Admin</th>
                     </tr>
@@ -674,7 +681,7 @@ export default function AdminDashboardView({
                   <tbody className="divide-y divide-gray-100">
                     {filteredAppointments.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-medical-muted">
+                        <td colSpan={9} className="py-12 text-center text-medical-muted">
                           Tidak ada data janji temu yang cocok dengan filter.
                         </td>
                       </tr>
@@ -697,17 +704,49 @@ export default function AdminDashboardView({
                               {apt.start_time} - {apt.end_time} WIB
                             </span>
                           </td>
-                          <td className="py-3 px-4 font-bold text-medical-text">
-                            {apt.patient_name}
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-medical-text block">{apt.patient_name}</span>
+                            {apt.initial_complaint && (
+                              <span className="text-[10px] text-gray-500 block truncate max-w-[140px]" title={apt.initial_complaint}>
+                                Keluhan: {apt.initial_complaint}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-4 font-mono text-medical-muted">
-                            {apt.patient_whatsapp}
+                            {apt.patient_whatsapp || '-'}
                           </td>
                           <td className="py-3 px-4 font-medium text-medical-text">
                             {apt.staff?.full_name}
                           </td>
                           <td className="py-3 px-4 text-medical-muted">
                             {apt.service?.name}
+                          </td>
+                          <td className="py-3 px-4 max-w-[200px]">
+                            {apt.medical_notes ? (
+                              <button
+                                type="button"
+                                onClick={() => setViewingNotesAppointment(apt)}
+                                className="group text-left flex items-start gap-1.5 p-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer w-full shadow-xs"
+                                title="Klik untuk membaca catatan dokter / resep lengkap"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                                <div className="overflow-hidden">
+                                  <span className="text-[11px] font-semibold text-emerald-900 block truncate">
+                                    {apt.medical_notes}
+                                  </span>
+                                  <span className="text-[10px] text-emerald-700 font-bold block">
+                                    Buka Catatan →
+                                  </span>
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                                <Clock className="w-3 h-3 text-gray-300 shrink-0" />
+                                <span className="italic">
+                                  {apt.status === 'completed' ? 'Tidak ada catatan' : 'Menunggu dokter'}
+                                </span>
+                              </div>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <span
@@ -728,11 +767,24 @@ export default function AdminDashboardView({
                           </td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setViewingNotesAppointment(apt)}
+                                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                  apt.medical_notes
+                                    ? 'text-emerald-700 hover:bg-emerald-50 border-emerald-300 bg-emerald-50/50'
+                                    : 'text-gray-500 hover:bg-gray-100 border-gray-200'
+                                }`}
+                                title={apt.medical_notes ? 'Lihat Catatan & Resep Dokter' : 'Lihat Detail Pasien'}
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                              </button>
+
                               {apt.status !== 'completed' && (
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateAppointmentStatus(apt.id, 'completed')}
-                                  className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
+                                  className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200 cursor-pointer"
                                   title="Tandai Selesai Konsultasi"
                                 >
                                   <Check className="w-3.5 h-3.5" />
@@ -742,7 +794,7 @@ export default function AdminDashboardView({
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateAppointmentStatus(apt.id, 'cancelled')}
-                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200"
+                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer"
                                   title="Batalkan Jadwal"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -2026,6 +2078,174 @@ export default function AdminDashboardView({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: MEDICAL NOTES & DOCTOR RESUME FOR ADMINISTRATION */}
+      {/* ------------------------------------------------------------------ */}
+      {viewingNotesAppointment && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full border border-medical-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-emerald-50/80 p-5 border-b border-emerald-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold">
+                  <ClipboardList className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
+                    Kebutuhan Administrasi / Kasir / Farmasi
+                  </span>
+                  <h3 className="text-base font-bold text-medical-text">
+                    Resume Medis & Catatan Dokter
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingNotesAppointment(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Patient & Doctor Card Info */}
+              <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-100 space-y-2 text-xs">
+                <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
+                  <div>
+                    <span className="text-medical-muted block text-[11px]">Pasien</span>
+                    <span className="font-bold text-medical-text text-sm">{viewingNotesAppointment.patient_name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-medical-muted block text-[11px]">Nomor Antrean</span>
+                    <span className="font-mono font-extrabold text-sm text-medical-primary">
+                      {viewingNotesAppointment.queue_number || 'A-001'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div>
+                    <span className="text-medical-muted block">Dokter Pemeriksa:</span>
+                    <span className="font-semibold text-medical-text">{viewingNotesAppointment.staff?.full_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-medical-muted block">Layanan:</span>
+                    <span className="font-semibold text-medical-text">{viewingNotesAppointment.service?.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-medical-muted block">Jadwal Janji Temu:</span>
+                    <span className="font-semibold text-medical-text">
+                      {viewingNotesAppointment.appointment_date} ({viewingNotesAppointment.start_time} WIB)
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-medical-muted block">Status:</span>
+                    <span
+                      className={`inline-block font-bold text-[10px] px-2 py-0.5 rounded-full mt-0.5 ${
+                        viewingNotesAppointment.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : viewingNotesAppointment.status === 'confirmed'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {viewingNotesAppointment.status === 'completed'
+                        ? 'Selesai Konsultasi'
+                        : viewingNotesAppointment.status === 'confirmed'
+                        ? 'Menunggu'
+                        : 'Batal'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Keluhan Awal Pasien */}
+              <div>
+                <span className="text-xs font-bold text-medical-muted block mb-1">
+                  Keluhan Awal Pasien (Saat Pendaftaran):
+                </span>
+                <div className="p-3 bg-gray-50 rounded-xl text-xs text-medical-text border border-gray-100">
+                  {viewingNotesAppointment.initial_complaint || 'Tidak ada keluhan tertulis saat pendaftaran.'}
+                </div>
+              </div>
+
+              {/* Catatan Dokter / Resume Medis */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-medical-text flex items-center gap-1.5">
+                    <Stethoscope className="w-3.5 h-3.5 text-emerald-600" />
+                    Catatan Pemeriksaan, Diagnosis & Resep Obat:
+                  </span>
+                  {viewingNotesAppointment.medical_notes && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (viewingNotesAppointment.medical_notes) {
+                          navigator.clipboard.writeText(viewingNotesAppointment.medical_notes);
+                          setCopiedNotes(true);
+                          toast.success('Catatan dokter disalin ke clipboard');
+                          setTimeout(() => setCopiedNotes(false), 2000);
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3 h-3" />
+                      {copiedNotes ? 'Tersalin!' : 'Salin Catatan'}
+                    </button>
+                  )}
+                </div>
+
+                {viewingNotesAppointment.medical_notes ? (
+                  <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs text-emerald-950 font-sans leading-relaxed whitespace-pre-wrap">
+                    {viewingNotesAppointment.medical_notes}
+                  </div>
+                ) : (
+                  <div className="p-5 bg-amber-50/70 border border-amber-200 rounded-xl text-center space-y-1">
+                    <Clock className="w-6 h-6 text-amber-500 mx-auto mb-1" />
+                    <p className="text-xs font-bold text-amber-900">Belum Ada Catatan dari Dokter</p>
+                    <p className="text-[11px] text-amber-700">
+                      Dokter belum memasukkan diagnosis atau resep untuk jadwal ini. Begitu dokter mengisi di ruang praktiknya, catatan otomatis tampil di sini secara real-time.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Keterangan Operasional Administrasi */}
+              <div className="p-3 bg-sky-50 border border-sky-100 rounded-xl text-[11px] text-sky-800 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <span>
+                  Informasi ini tersinkronisasi langsung dari dashboard dokter untuk keperluan administrasi, kasir (billing biaya tindakan), dan apotek (penyiapan resep obat) tanpa perlu komunikasi lisan ke ruang periksa dokter.
+                </span>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-gray-50 border-t border-medical-border flex items-center justify-between">
+              {viewingNotesAppointment.patient_whatsapp && (
+                <a
+                  href={`https://wa.me/${viewingNotesAppointment.patient_whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
+                >
+                  <Phone className="w-3.5 h-3.5" /> Hubungi WhatsApp Pasien
+                </a>
+              )}
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setViewingNotesAppointment(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-gray-100 text-medical-text border border-medical-border cursor-pointer shadow-xs"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
