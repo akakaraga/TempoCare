@@ -382,3 +382,31 @@ export async function adminUpdateAppointmentAction(
     return { success: false, error: err.message || 'Gagal memperbarui jadwal pasien' };
   }
 }
+
+// ==============================================================================
+// PUBLIC ACTION: CEK JADWAL & NOMOR ANTREAN PASIEN
+// ==============================================================================
+
+export async function findAppointmentAction(query: string) {
+  try {
+    if (!query || !query.trim()) {
+      return { success: false, error: 'Silakan masukkan nomor antrean, nomor WhatsApp, atau kode pendaftaran Anda.' };
+    }
+
+    const appointments = await db.findAppointments(query.trim());
+    if (appointments.length === 0) {
+      return {
+        success: false,
+        error: 'Jadwal pasien tidak ditemukan. Periksa kembali nomor antrean (misal: U-002) atau nomor WhatsApp yang Anda gunakan saat mendaftar.',
+      };
+    }
+
+    return {
+      success: true,
+      appointments,
+      appointment: appointments[0],
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Terjadi gangguan saat mencari jadwal pasien.' };
+  }
+}

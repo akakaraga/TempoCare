@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Service, Staff, TimeSlot, Appointment } from '@/lib/types';
-import { getAvailableSlotsAction, bookAppointmentAction } from '@/actions';
+import { getAvailableSlotsAction, bookAppointmentAction, findAppointmentAction } from '@/actions';
 import { formatRupiah } from '@/lib/utils';
 import {
   Calendar as CalendarIcon,
@@ -20,7 +20,11 @@ import {
   ExternalLink,
   Info,
   CalendarDays,
-  Sparkles
+  Sparkles,
+  Search,
+  CalendarCheck,
+  Printer,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,6 +45,15 @@ const dayNamesIndonesian = [
 
 export default function BookingWizard({ services, staffList }: BookingWizardProps) {
   const activeServices = services.filter((s) => s.is_active);
+
+  // Mode: 'booking' (Daftar Baru) atau 'check' (Cek Jadwal Pasien)
+  const [activeMode, setActiveMode] = useState<'booking' | 'check'>('booking');
+
+  // Search Schedule States
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchingSchedule, setSearchingSchedule] = useState<boolean>(false);
+  const [foundSchedule, setFoundSchedule] = useState<Appointment | null>(null);
+  const [searchErrorMsg, setSearchErrorMsg] = useState<string | null>(null);
 
   // Stepper: 1: Layanan, 2: Dokter, 3: Tanggal & Jam, 4: Data Pasien
   const [step, setStep] = useState<number>(1);
@@ -191,6 +204,68 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
     }
   };
 
+  // Listen to hash change (e.g. #cek-jadwal from Navbar or buttons)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkHash = () => {
+        if (window.location.hash === '#cek-jadwal') {
+          setActiveMode('check');
+        } else if (window.location.hash === '#booking') {
+          setActiveMode('booking');
+        }
+      };
+
+      checkHash();
+      window.addEventListener('hashchange', checkHash);
+      return () => window.removeEventListener('hashchange', checkHash);
+    }
+  }, []);
+
+  const handleSearchSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) {
+      toast.error('Masukkan nomor antrean atau nomor WhatsApp Anda.');
+      return;
+    }
+
+    setSearchingSchedule(true);
+    setSearchErrorMsg(null);
+    try {
+      const res = await findAppointmentAction(query);
+      if (res.success && res.appointment) {
+        setFoundSchedule(res.appointment);
+        toast.success(`Jadwal pasien ${res.appointment.patient_name} ditemukan!`);
+      } else {
+        setSearchErrorMsg(res.error || 'Jadwal pasien tidak ditemukan. Periksa kembali nomor antrean atau nomor WhatsApp Anda.');
+        toast.error(res.error || 'Jadwal tidak ditemukan');
+      }
+    } catch {
+      setSearchErrorMsg('Terjadi gangguan jaringan saat mencari jadwal pasien.');
+      toast.error('Gagal mencari jadwal pasien');
+    } finally {
+      setSearchingSchedule(false);
+    }
+  };
+
+  const formatScheduleDate = (dateStr: string) => {
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return d.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const resetForm = () => {
     setConfirmedBooking(null);
     setStep(1);
@@ -203,43 +278,277 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
   return (
     <div id="booking" className="w-full max-w-5xl mx-auto py-6 px-4 sm:px-6">
-      {/* Wizard Card Container */}
+      {/* Tab Switcher: Daftar Baru vs Cek Jadwal Pasien */}
+      <div id="cek-jadwal" className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+        <button
+          type="button"
+          onClick={() => setActiveMode('booking')}
+          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+            activeMode === 'booking'
+              ? 'bg-medical-primary text-white shadow-md ring-2 ring-medical-primary/20 scale-[1.02]'
+              : 'bg-white text-medical-text border border-medical-border hover:bg-medical-subtle/50'
+          }`}
+        >
+          <Stethoscope className="w-4 h-4 text-emerald-300" />
+          <span>Daftar Janji Temu Baru</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMode('check')}
+          className={`w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+            activeMode === 'check'
+              ? 'bg-medical-primary text-white shadow-md ring-2 ring-medical-primary/20 scale-[1.02]'
+              : 'bg-white text-medical-text border border-medical-border hover:bg-medical-subtle/50'
+          }`}
+        >
+          <Search className="w-4 h-4 text-amber-400" />
+          <span>Cek Jadwal & Nomor Antrean Pasien</span>
+        </button>
+      </div>
+
+      {/* Main Card Container */}
       <div className="bg-white rounded-3xl border border-medical-border shadow-soft overflow-hidden">
-        {/* Wizard Header & Stepper */}
-        <div className="bg-medical-subtle/70 border-b border-medical-border px-6 py-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-medical-border/80 text-medical-primary mb-1.5">
-               Formulir Pendaftaran Pasien
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-medical-text">
-                Pendaftaran Janji Temu Dokter
-              </h2>
-              <p className="text-xs sm:text-sm text-medical-muted mt-0.5">
-                Ikuti 4 langkah untuk memilih dokter dan mendapatkan nomor antrean.
+        {activeMode === 'check' ? (
+          /* ========================================================================= */
+          /* MODE 2: CEK JADWAL & NOMOR ANTREAN PASIEN LANGSUNG DI BERANDA            */
+          /* ========================================================================= */
+          <div className="p-6 sm:p-10 space-y-6">
+            <div className="text-center max-w-xl mx-auto space-y-2">
+              <div className="w-12 h-12 bg-medical-subtle text-medical-primary rounded-2xl flex items-center justify-center mx-auto mb-2">
+                <CalendarCheck className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-medical-text">
+                Cek Detail Jadwal & Antrean Anda
+              </h3>
+              <p className="text-xs sm:text-sm text-medical-muted">
+                Sudah pernah mendaftar? Masukkan <strong>Nomor Antrean</strong> (cth: <code>U-002</code>, <code>G-001</code>) atau <strong>Nomor WhatsApp</strong> Anda.
               </p>
             </div>
 
-            {/* Stepper Tabs - Clean & Legible */}
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold overflow-x-auto pb-1">
-              {[
-                { num: 1, label: 'Pilih Poli' },
-                { num: 2, label: 'Pilih Dokter' },
-                { num: 3, label: 'Pilih Jam' },
-                { num: 4, label: 'Data Pasien' },
-              ].map((s) => (
-                <button
-                  key={s.num}
-                  type="button"
-                  onClick={() => s.num < step && setStep(s.num)}
-                  disabled={s.num > step}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
-                    step === s.num
-                      ? 'bg-medical-primary text-white shadow-xs font-bold'
-                      : s.num < step
-                      ? 'bg-white text-medical-primary border border-medical-primary/30 cursor-pointer hover:bg-medical-subtle'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
+            {/* Search Input Form */}
+            <form onSubmit={handleSearchSchedule} className="max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-2.5">
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-medical-muted absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: U-002 atau 08123456789 atau nama Anda"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-medical-border text-xs sm:text-sm focus:ring-2 focus:ring-medical-primary outline-none text-medical-text font-medium shadow-2xs"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={searchingSchedule}
+                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl font-bold text-xs sm:text-sm bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shrink-0 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {searchingSchedule ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Mencari...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    <span>Cari Jadwal</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Error Message if Not Found */}
+            {searchErrorMsg && !foundSchedule && (
+              <div className="max-w-xl mx-auto p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-2 animate-in fade-in">
+                <div className="flex items-center gap-2 font-bold text-amber-800">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Jadwal Tidak Ditemukan</span>
+                </div>
+                <p className="text-amber-800 leading-relaxed">{searchErrorMsg}</p>
+                <div className="pt-2 border-t border-amber-200/60 flex items-center justify-between">
+                  <span className="text-[11px] text-amber-700">Belum pernah mendaftar berobat?</span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMode('booking')}
+                    className="font-bold text-medical-primary hover:underline cursor-pointer"
+                  >
+                    Daftar Sekarang →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Found Schedule Details Card */}
+            {foundSchedule && (
+              <div className="max-w-2xl mx-auto border-2 border-medical-primary/30 rounded-3xl overflow-hidden shadow-soft animate-in fade-in zoom-in-95 duration-200 bg-white">
+                {/* Result Header */}
+                <div className="bg-medical-subtle/80 p-6 border-b border-medical-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs uppercase tracking-wider font-bold text-medical-muted block">
+                      Nomor Antrean Anda
+                    </span>
+                    <span className="text-3xl sm:text-4xl font-mono font-extrabold text-medical-primary">
+                      {foundSchedule.queue_number || 'A-001'}
+                    </span>
+                  </div>
+                  <div className="sm:text-right">
+                    <span className="text-xs text-medical-muted block mb-1">Status Kunjungan</span>
+                    <span
+                      className={`inline-block font-bold text-xs px-3 py-1 rounded-full ${
+                        foundSchedule.status === 'confirmed'
+                          ? 'bg-amber-100 text-amber-800'
+                          : foundSchedule.status === 'completed'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {foundSchedule.status === 'confirmed'
+                        ? '● Menunggu Giliran / Jadwal Aktif'
+                        : foundSchedule.status === 'completed'
+                        ? '✓ Pemeriksaan Selesai'
+                        : '✕ Jadwal Dibatalkan'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Details Body */}
+                <div className="p-6 space-y-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-3.5 bg-gray-50 rounded-2xl space-y-1">
+                      <span className="text-medical-muted block font-medium">Nama Pasien:</span>
+                      <strong className="text-medical-text text-sm block">{foundSchedule.patient_name}</strong>
+                      <span className="text-[11px] text-gray-500 font-mono block">{foundSchedule.patient_whatsapp || '-'}</span>
+                    </div>
+
+                    <div className="p-3.5 bg-gray-50 rounded-2xl space-y-1">
+                      <span className="text-medical-muted block font-medium">Poliklinik & Layanan:</span>
+                      <strong className="text-medical-primary text-sm block">{foundSchedule.service?.name || 'Poliklinik'}</strong>
+                      <span className="text-[11px] text-gray-600 block">Dokter: {foundSchedule.staff?.full_name}</span>
+                    </div>
+
+                    <div className="p-3.5 bg-medical-subtle/40 rounded-2xl space-y-1 border border-medical-primary/20">
+                      <span className="text-medical-muted block font-medium flex items-center gap-1.5">
+                        <CalendarIcon className="w-3.5 h-3.5 text-medical-primary" /> Tanggal Kunjungan:
+                      </span>
+                      <strong className="text-medical-text text-sm block">
+                        {formatScheduleDate(foundSchedule.appointment_date)}
+                      </strong>
+                    </div>
+
+                    <div className="p-3.5 bg-medical-subtle/40 rounded-2xl space-y-1 border border-medical-primary/20">
+                      <span className="text-medical-muted block font-medium flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-medical-primary" /> Jam Konsultasi:
+                      </span>
+                      <strong className="text-medical-text text-sm block">
+                        Pukul {foundSchedule.start_time} - {foundSchedule.end_time} WIB
+                      </strong>
+                    </div>
+                  </div>
+
+                  {foundSchedule.initial_complaint && (
+                    <div className="p-3.5 bg-gray-50 rounded-2xl">
+                      <span className="text-medical-muted block font-medium mb-0.5">Keluhan Awal Pasien:</span>
+                      <p className="text-medical-text font-medium">{foundSchedule.initial_complaint}</p>
+                    </div>
+                  )}
+
+                  {/* Catatan Dokter jika sudah diperiksa */}
+                  {foundSchedule.medical_notes ? (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        <span>Catatan Pemeriksaan & Resep Dokter:</span>
+                      </div>
+                      <p className="text-emerald-950 font-medium leading-relaxed whitespace-pre-wrap">
+                        {foundSchedule.medical_notes}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-sky-50 border border-sky-100 rounded-2xl text-[11px] text-sky-800 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-sky-600 shrink-0" />
+                      <span>
+                        Silakan hadir di klinik 15 menit sebelum pukul <strong>{foundSchedule.start_time} WIB</strong> untuk verifikasi nomor antrean di meja administrasi.
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFoundSchedule(null);
+                        setSearchQuery('');
+                      }}
+                      className="w-full sm:w-auto text-medical-muted hover:text-medical-text text-xs font-semibold py-2 px-3 rounded-xl border border-gray-200 cursor-pointer"
+                    >
+                      ← Cari Jadwal Pasien Lain
+                    </button>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="px-4 py-2.5 rounded-xl border border-medical-border text-medical-text hover:bg-gray-50 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Printer className="w-3.5 h-3.5" /> Cetak Bukti
+                      </button>
+
+                      {foundSchedule.status === 'confirmed' && (
+                        <a
+                          href={`/manage?token=${foundSchedule.reschedule_token}`}
+                          className="px-4 py-2.5 rounded-xl bg-medical-primary text-white hover:bg-medical-primaryDark text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" /> Ganti Hari / Jam
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ========================================================================= */
+          /* MODE 1: FORM PENDAFTARAN PASIEN BARU (4 LANGKAH)                          */
+          /* ========================================================================= */
+          <>
+            {/* Wizard Header & Stepper */}
+            <div className="bg-medical-subtle/70 border-b border-medical-border px-6 py-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-medical-border/80 text-medical-primary mb-1.5">
+                   Formulir Pendaftaran Pasien
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-medical-text">
+                    Pendaftaran Janji Temu Dokter
+                  </h2>
+                  <p className="text-xs sm:text-sm text-medical-muted mt-0.5">
+                    Ikuti 4 langkah untuk memilih dokter dan mendapatkan nomor antrean.
+                  </p>
+                </div>
+
+                {/* Stepper Tabs - Clean & Legible */}
+                <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold overflow-x-auto pb-1">
+                  {[
+                    { num: 1, label: 'Pilih Poli' },
+                    { num: 2, label: 'Pilih Dokter' },
+                    { num: 3, label: 'Pilih Jam' },
+                    { num: 4, label: 'Data Pasien' },
+                  ].map((s) => (
+                    <button
+                      key={s.num}
+                      type="button"
+                      onClick={() => s.num < step && setStep(s.num)}
+                      disabled={s.num > step}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
+                        step === s.num
+                          ? 'bg-medical-primary text-white shadow-xs font-bold'
+                          : s.num < step
+                          ? 'bg-white text-medical-primary border border-medical-primary/30 cursor-pointer hover:bg-medical-subtle'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
                 >
                   <span className="w-4 h-4 rounded-full text-[10px] flex items-center justify-center font-bold bg-white/20">
                     {s.num < step ? '✓' : s.num}
@@ -704,6 +1013,8 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
             </form>
           )}
         </div>
+        </>
+      )}
       </div>
 
       {/* CONFIRMATION SUCCESS MODAL */}

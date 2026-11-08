@@ -631,33 +631,63 @@ export const db = {
     }));
   },
 
-  async getAppointmentByToken(token: string): Promise<Appointment | null> {
-    const supabase = getSupabaseClient();
-    if (supabase) {
+  async findAppointments(query: string): Promise<Appointment[]> {
+    if (!query || !query.trim()) return [];
+
+    let cleanQuery = query.trim();
+    // Jika query berupa URL (misal ".../manage?token=xxx")
+    if (cleanQuery.includes('token=')) {
       try {
-        const { data, error } = await supabase.from('appointments').select('*').eq('reschedule_token', token).single();
-        if (!error && data) {
-          const store = loadLocalStore();
-          return {
-            ...data,
-            staff: (store.staff || []).find((s) => s.id === data.staff_id),
-            service: (store.services || []).find((svc) => svc.id === data.service_id),
-          } as Appointment;
-        }
-      } catch (err) {
-        console.warn('[Supabase getAppointmentByToken]', err);
+        const url = new URL(cleanQuery, 'http://localhost');
+        const tokenParam = url.searchParams.get('token');
+        if (tokenParam) cleanQuery = tokenParam.trim();
+      } catch {
+        // Abaikan jika bukan format URL valid
       }
     }
 
-    const store = loadLocalStore();
-    const found = (store.appointments || []).find((a) => a.reschedule_token === token);
-    if (!found) return null;
+    const numericQuery = cleanQuery.replace(/\D/g, '');
+    const lowerQuery = cleanQuery.toLowerCase();
 
-    return {
-      ...found,
-      staff: (store.staff || []).find((s) => s.id === found.staff_id),
-      service: (store.services || []).find((svc) => svc.id === found.service_id),
-    };
+    const allAppointments = await this.getAppointments();
+
+    const matched = allAppointments.filter((a) => {
+      // 1. Token exact match
+      if (a.reschedule_token && a.reschedule_token.toLowerCase() === lowerQuery) return true;
+      // 2. ID exact match
+      if (a.id && a.id.toLowerCase() === lowerQuery) return true;
+      // 3. Queue number match (e.g. "U-002", "u-002")
+      if (a.queue_number && a.queue_number.toLowerCase() === lowerQuery) return true;
+      if (a.queue_number && cleanQuery.length >= 3 && a.queue_number.toLowerCase().includes(lowerQuery)) return true;
+      // 4. WhatsApp match (numeric comparison)
+      if (numericQuery.length >= 8 && a.patient_whatsapp) {
+        const cleanPhone = a.patient_whatsapp.replace(/\D/g, '');
+        if (cleanPhone === numericQuery || cleanPhone.endsWith(numericQuery) || numericQuery.endsWith(cleanPhone)) {
+          return true;
+        }
+      }
+      // 5. Email exact match
+      if (a.patient_email && a.patient_email.toLowerCase() === lowerQuery) return true;
+      // 6. Patient Name partial match (if length >= 3)
+      if (cleanQuery.length >= 3 && a.patient_name && a.patient_name.toLowerCase().includes(lowerQuery)) {
+        return true;
+      }
+      return false;
+    });
+
+    // Urutkan: jadwal aktif (confirmed) terlebih dahulu, lalu berdasarkan tanggal terbaru
+    matched.sort((a, b) => {
+      if (a.status === 'confirmed' && b.status !== 'confirmed') return -1;
+      if (a.status !== 'confirmed' && b.status === 'confirmed') return 1;
+      return b.appointment_date.localeCompare(a.appointment_date);
+    });
+
+    return matched;
+  },
+
+  async getAppointmentByToken(token: string): Promise<Appointment | null> {
+    const list = await this.findAppointments(token);
+    return list.length > 0 ? list[0] : null;
   },
 
   async createAppointment(input: {

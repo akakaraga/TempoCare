@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Appointment, TimeSlot } from '@/lib/types';
-import { getAvailableSlotsAction, rescheduleAppointmentAction, cancelAppointmentAction } from '@/actions';
+import { getAvailableSlotsAction, rescheduleAppointmentAction, cancelAppointmentAction, findAppointmentAction } from '@/actions';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -14,7 +14,9 @@ import {
   User,
   Stethoscope,
   Info,
-  CalendarCheck
+  CalendarCheck,
+  Search,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -30,6 +32,8 @@ export default function ManageAppointmentView({
 }: ManageAppointmentViewProps) {
   const [tokenInput, setTokenInput] = useState<string>(initialToken);
   const [appointment, setAppointment] = useState<Appointment | null>(initialAppointment);
+  const [searching, setSearching] = useState<boolean>(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   // Reschedule state
   const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
@@ -135,16 +139,57 @@ export default function ManageAppointmentView({
     }
   };
 
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = tokenInput.trim();
+    if (!query) {
+      toast.error('Silakan masukkan nomor antrean, nomor WhatsApp, atau kode jadwal Anda.');
+      return;
+    }
+
+    setSearching(true);
+    setSearchError(null);
+    try {
+      const res = await findAppointmentAction(query);
+      if (res.success && res.appointment) {
+        setAppointment(res.appointment);
+        toast.success(`Jadwal pasien ${res.appointment.patient_name} ditemukan!`);
+      } else {
+        setSearchError(res.error || 'Jadwal pasien tidak ditemukan. Periksa kembali nomor antrean atau nomor WhatsApp Anda.');
+        toast.error(res.error || 'Jadwal tidak ditemukan');
+      }
+    } catch {
+      setSearchError('Terjadi gangguan jaringan saat mencari jadwal.');
+      toast.error('Gagal mencari jadwal pasien');
+    } finally {
+      setSearching(false);
+    }
+  };
+
   return (
     <div className="max-w-3xl mx-auto py-10 px-4">
       {/* Back button */}
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-medical-primary hover:underline"
         >
           <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Utama
         </Link>
+
+        {appointment && (
+          <button
+            type="button"
+            onClick={() => {
+              setAppointment(null);
+              setTokenInput('');
+              setSearchError(null);
+            }}
+            className="text-xs font-semibold text-medical-primary hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5" /> Cari Jadwal Lain
+          </button>
+        )}
       </div>
 
       {!appointment ? (
@@ -157,33 +202,51 @@ export default function ManageAppointmentView({
             Cek Jadwal & Nomor Antrean Anda
           </h2>
           <p className="text-xs sm:text-sm text-medical-muted max-w-md mx-auto leading-relaxed">
-            Masukkan kode pendaftaran atau tautan yang Anda terima saat mendaftar berobat.
+            Masukkan <strong>Nomor Antrean</strong> (contoh: <code>U-002</code>), <strong>Nomor WhatsApp</strong> yang digunakan saat mendaftar, atau kode pendaftaran.
           </p>
 
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (tokenInput.trim()) {
-                window.location.href = `/manage?token=${encodeURIComponent(tokenInput.trim())}`;
-              }
-            }}
+            onSubmit={handleSearchSubmit}
             className="flex flex-col sm:flex-row items-center justify-center gap-2.5 max-w-md mx-auto pt-2"
           >
             <input
               type="text"
               required
-              placeholder="Tempel kode atau tautan jadwal di sini"
+              placeholder="Contoh: U-002 atau 08123456789"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
               className="w-full text-xs px-4 py-3 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none text-medical-text"
             />
             <button
               type="submit"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors shrink-0 shadow-xs"
+              disabled={searching}
+              className="w-full sm:w-auto px-6 py-3 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors shrink-0 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              Lihat Jadwal
+              {searching ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Mencari...
+                </>
+              ) : (
+                <>
+                  <Search className="w-3.5 h-3.5" /> Lihat Jadwal
+                </>
+              )}
             </button>
           </form>
+
+          {searchError && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 max-w-md mx-auto text-left space-y-1">
+              <span className="font-bold block flex items-center gap-1.5 text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" /> Jadwal Tidak Ditemukan
+              </span>
+              <p className="text-amber-800">{searchError}</p>
+              <div className="pt-1">
+                <Link href="/#booking" className="text-medical-primary font-bold hover:underline inline-block">
+                  → Belum mendaftar? Klik di sini untuk daftar janji temu baru
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* Appointment Card */

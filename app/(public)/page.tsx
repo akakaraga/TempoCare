@@ -140,9 +140,9 @@ export default async function HomePage() {
             <span>&copy; {new Date().getFullYear()} {clinicSettings.name}. Seluruh Hak Cipta Dilindungi.</span>
 
             <div className="flex items-center gap-4">
-              <Link href="/manage" className="hover:text-medical-primary underline">
-                Cek / Ganti Jadwal Saya
-              </Link>
+              <a href="/#cek-jadwal" className="hover:text-medical-primary underline">
+                Cek / Ganti Jadwal Pasien
+              </a>
             </div>
           </div>
         </div>

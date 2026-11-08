@@ -29,20 +29,21 @@ export default function Navbar({ clinicSettings }: NavbarProps) {
         </Link>
 
         {/* Right Actions: Simple, Clear & Helpful */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <Link
-            href="/manage"
-            className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2.5 rounded-xl text-medical-text hover:bg-medical-subtle transition-colors border border-medical-border"
+        <div className="flex items-center gap-2 sm:gap-3">
+          <a
+            href="/#cek-jadwal"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl text-medical-text hover:bg-medical-subtle transition-colors border border-medical-border"
           >
-            <CalendarCheck className="w-4 h-4 text-medical-primary" />
-            <span>Lihat Jadwal Saya</span>
-          </Link>
+            <CalendarCheck className="w-4 h-4 text-medical-primary shrink-0" />
+            <span className="hidden xs:inline">Cek Jadwal</span>
+            <span className="xs:hidden">Cek</span>
+          </a>
 
           <a
-            href="#booking"
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl bg-medical-accent text-white hover:bg-medical-accentHover shadow-sm transition-all hover:shadow active:scale-95"
+            href="/#booking"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-bold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-medical-accent text-white hover:bg-medical-accentHover shadow-sm transition-all hover:shadow active:scale-95"
           >
-            <Stethoscope className="w-4 h-4" />
+            <Stethoscope className="w-4 h-4 shrink-0" />
             <span>Daftar Sekarang</span>
           </a>
         </div>
