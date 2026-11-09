@@ -201,14 +201,11 @@ export default function ManageAppointmentView({
       {!appointment ? (
         /* Token Search Form */
         <div className="bg-white rounded-3xl border border-medical-border p-8 text-center shadow-soft space-y-4">
-          <div className="w-14 h-14 bg-medical-subtle text-medical-primary rounded-2xl flex items-center justify-center mx-auto">
-            <CalendarCheck className="w-7 h-7" />
-          </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-medical-text">
             Cek Jadwal & Nomor Antrean Anda
           </h2>
           <p className="text-xs sm:text-sm text-medical-muted max-w-md mx-auto leading-relaxed">
-            Masukkan <strong>Nomor Antrean</strong> (contoh: <code>U-002</code>), <strong>Nomor WhatsApp</strong> yang digunakan saat mendaftar, atau kode pendaftaran.
+            Masukkan <strong>Nomor Antrean</strong> yang di dapat setelah mendaftar atau <br /> <strong>Nomor WhatsApp</strong> yang digunakan saat mendaftar.
           </p>
 
           <form
