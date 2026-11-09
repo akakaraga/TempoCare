@@ -646,32 +646,57 @@ export const db = {
       }
     }
 
-    const numericQuery = cleanQuery.replace(/\D/g, '');
     const lowerQuery = cleanQuery.toLowerCase();
+    const cleanNumeric = cleanQuery.replace(/\D/g, '');
+    const cleanQueueInput = cleanQuery.replace(/[\s\-_]/g, '').toLowerCase();
+
+    // Normalisasi nomor telepon Indonesia (hilangkan awalan 62 atau 0 untuk pembanding)
+    let phoneCore = cleanNumeric;
+    if (phoneCore.startsWith('62')) phoneCore = phoneCore.slice(2);
+    if (phoneCore.startsWith('0')) phoneCore = phoneCore.slice(1);
 
     const allAppointments = await this.getAppointments();
 
     const matched = allAppointments.filter((a) => {
       // 1. Token exact match
       if (a.reschedule_token && a.reschedule_token.toLowerCase() === lowerQuery) return true;
+
       // 2. ID exact match
       if (a.id && a.id.toLowerCase() === lowerQuery) return true;
-      // 3. Queue number match (e.g. "U-002", "u-002")
-      if (a.queue_number && a.queue_number.toLowerCase() === lowerQuery) return true;
-      if (a.queue_number && cleanQuery.length >= 3 && a.queue_number.toLowerCase().includes(lowerQuery)) return true;
-      // 4. WhatsApp match (numeric comparison)
-      if (numericQuery.length >= 8 && a.patient_whatsapp) {
-        const cleanPhone = a.patient_whatsapp.replace(/\D/g, '');
-        if (cleanPhone === numericQuery || cleanPhone.endsWith(numericQuery) || numericQuery.endsWith(cleanPhone)) {
-          return true;
+
+      // 3. Queue number match yang fleksibel (contoh: "U-002", "u-002", "U002", "u002", "002")
+      if (a.queue_number) {
+        const dbQueueLower = a.queue_number.toLowerCase();
+        const dbQueueClean = a.queue_number.replace(/[\s\-_]/g, '').toLowerCase();
+
+        if (dbQueueLower === lowerQuery) return true;
+        if (dbQueueClean === cleanQueueInput) return true;
+        if (cleanQueueInput.length >= 2 && dbQueueClean.includes(cleanQueueInput)) return true;
+      }
+
+      // 4. WhatsApp match yang fleksibel & sinkron
+      if (a.patient_whatsapp && a.patient_whatsapp !== '-') {
+        const dbPhoneNumeric = a.patient_whatsapp.replace(/\D/g, '');
+        let dbPhoneCore = dbPhoneNumeric;
+        if (dbPhoneCore.startsWith('62')) dbPhoneCore = dbPhoneCore.slice(2);
+        if (dbPhoneCore.startsWith('0')) dbPhoneCore = dbPhoneCore.slice(1);
+
+        // Jika nomor yang diinput memiliki setidaknya 6 digit angka
+        if (phoneCore.length >= 6) {
+          if (dbPhoneNumeric === cleanNumeric) return true;
+          if (dbPhoneCore === phoneCore) return true;
+          if (dbPhoneCore.endsWith(phoneCore) || phoneCore.endsWith(dbPhoneCore)) return true;
         }
       }
+
       // 5. Email exact match
       if (a.patient_email && a.patient_email.toLowerCase() === lowerQuery) return true;
-      // 6. Patient Name partial match (if length >= 3)
+
+      // 6. Patient Name partial match (jika panjang >= 3)
       if (cleanQuery.length >= 3 && a.patient_name && a.patient_name.toLowerCase().includes(lowerQuery)) {
         return true;
       }
+
       return false;
     });
 

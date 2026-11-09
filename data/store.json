@@ -2,15 +2,15 @@
   "clinic_settings": {
     "id": "clinic-default-01",
     "name": "TempoCare Clinic & Hospital",
-    "tagline": "Klinik Pratama & Rumah Sakit Umum",
+    "tagline": "",
     "phone": "021-555-8367",
     "emergency_phone": "(021) 555-TEMPO",
     "email": "info@tempocare.clinic",
     "address": "Jl. Kesehatan No. 45, Jakarta Pusat",
     "announcement": "Pendaftaran Buka 24 Jam • Langsung Dapat Nomor Antrean",
-    "open_hour": "08:00",
-    "close_hour": "17:00",
-    "updated_at": "2026-11-06T14:39:00.000Z"
+    "open_hour": "08:00:00",
+    "close_hour": "17:00:00",
+    "updated_at": "2026-11-09T02:47:08.09+00:00"
   },
   "staff": [
     {

@@ -24,16 +24,22 @@ import { toast } from 'sonner';
 interface ManageAppointmentViewProps {
   initialAppointment: Appointment | null;
   initialToken?: string;
+  initialNotFound?: boolean;
 }
 
 export default function ManageAppointmentView({
   initialAppointment,
   initialToken = '',
+  initialNotFound = false,
 }: ManageAppointmentViewProps) {
   const [tokenInput, setTokenInput] = useState<string>(initialToken);
   const [appointment, setAppointment] = useState<Appointment | null>(initialAppointment);
   const [searching, setSearching] = useState<boolean>(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(
+    initialNotFound
+      ? `Jadwal pasien tidak ditemukan untuk "${initialToken}". Mohon periksa kembali input serta data yang Anda masukkan.`
+      : null
+  );
 
   // Reschedule state
   const [isRescheduling, setIsRescheduling] = useState<boolean>(false);
@@ -235,14 +241,59 @@ export default function ManageAppointmentView({
           </form>
 
           {searchError && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 max-w-md mx-auto text-left space-y-1">
-              <span className="font-bold block flex items-center gap-1.5 text-amber-800">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" /> Jadwal Tidak Ditemukan
-              </span>
-              <p className="text-amber-800">{searchError}</p>
-              <div className="pt-1">
-                <Link href="/#booking" className="text-medical-primary font-bold hover:underline inline-block">
-                  → Belum mendaftar? Klik di sini untuk daftar janji temu baru
+            <div className="p-5 bg-rose-50/90 border-2 border-rose-200 rounded-3xl text-xs text-rose-950 max-w-lg mx-auto text-left space-y-3 shadow-xs animate-in fade-in">
+              <div className="flex items-center gap-2.5 pb-2 border-b border-rose-200">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 font-bold">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-rose-900">
+                    Pencarian Ditolak: Data Tidak Ditemukan
+                  </h4>
+                  <span className="text-[11px] text-rose-700">
+                    Sistem tidak menemukan jadwal yang cocok di database faskes
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-rose-800 leading-relaxed font-medium">
+                {searchError}
+              </p>
+
+              <div className="bg-white/80 p-3.5 rounded-2xl border border-rose-200 space-y-2 text-[11px]">
+                <strong className="text-rose-900 block font-bold">
+                  Silakan periksa dan verifikasi kembali input serta data Anda:
+                </strong>
+                <ul className="space-y-1.5 text-rose-800 list-disc list-inside">
+                  <li>
+                    <strong>Format Nomor Antrean:</strong> Pastikan format sesuai nomor antrean pendaftaran Anda (contoh: <code className="bg-rose-100 px-1 py-0.5 rounded font-mono font-bold text-rose-900">U-002</code>, <code className="bg-rose-100 px-1 py-0.5 rounded font-mono font-bold text-rose-900">G-001</code>).
+                  </li>
+                  <li>
+                    <strong>Nomor WhatsApp:</strong> Pastikan nomor yang dimasukkan sama persis dengan nomor aktif yang digunakan saat mendaftar berobat.
+                  </li>
+                  <li>
+                    <strong>Belum Pernah Mendaftar?</strong> Jika belum pernah reservasi, data Anda belum tersimpan di database faskes. Silakan lakukan pendaftaran baru terlebih dahulu.
+                  </li>
+                </ul>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTokenInput('');
+                    setSearchError(null);
+                  }}
+                  className="w-full sm:w-auto text-xs font-semibold text-rose-700 hover:underline cursor-pointer py-1"
+                >
+                  ← Bersihkan & Coba Input Ulang
+                </button>
+
+                <Link
+                  href="/#booking"
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all text-center shadow-xs"
+                >
+                  Daftar Janji Temu Baru →
                 </Link>
               </div>
             </div>

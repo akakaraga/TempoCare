@@ -389,15 +389,22 @@ export async function adminUpdateAppointmentAction(
 
 export async function findAppointmentAction(query: string) {
   try {
-    if (!query || !query.trim()) {
-      return { success: false, error: 'Silakan masukkan nomor antrean, nomor WhatsApp, atau kode pendaftaran Anda.' };
-    }
-
-    const appointments = await db.findAppointments(query.trim());
-    if (appointments.length === 0) {
+    const trimmed = (query || '').trim();
+    if (!trimmed) {
       return {
         success: false,
-        error: 'Jadwal pasien tidak ditemukan. Periksa kembali nomor antrean (misal: U-002) atau nomor WhatsApp yang Anda gunakan saat mendaftar.',
+        error: 'Silakan masukkan nomor antrean atau nomor WhatsApp Anda.',
+        notFound: false,
+      };
+    }
+
+    const appointments = await db.findAppointments(trimmed);
+    if (!appointments || appointments.length === 0) {
+      return {
+        success: false,
+        error: `Jadwal pasien tidak ditemukan untuk "${trimmed}". Mohon periksa kembali input serta data yang Anda masukkan.`,
+        notFound: true,
+        searchedQuery: trimmed,
       };
     }
 
@@ -405,8 +412,13 @@ export async function findAppointmentAction(query: string) {
       success: true,
       appointments,
       appointment: appointments[0],
+      totalFound: appointments.length,
     };
   } catch (err: any) {
-    return { success: false, error: err.message || 'Terjadi gangguan saat mencari jadwal pasien.' };
+    return {
+      success: false,
+      error: err.message || 'Terjadi gangguan saat memeriksa database jadwal pasien.',
+      notFound: false,
+    };
   }
 }

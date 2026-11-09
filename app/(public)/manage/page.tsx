@@ -11,6 +11,7 @@ interface ManagePageProps {
 export default async function ManagePage({ searchParams }: ManagePageProps) {
   const token = searchParams.token || '';
   const appointment = token ? await db.getAppointmentByToken(token) : null;
+  const initialNotFound = Boolean(token && !appointment);
 
   return (
     <div className="min-h-screen flex flex-col bg-medical-bg">
@@ -19,6 +20,7 @@ export default async function ManagePage({ searchParams }: ManagePageProps) {
         <ManageAppointmentView
           initialAppointment={appointment}
           initialToken={token}
+          initialNotFound={initialNotFound}
         />
       </main>
     </div>
