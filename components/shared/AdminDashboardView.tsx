@@ -1528,6 +1528,18 @@ export default function AdminDashboardView({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block font-semibold mb-1">Email Staf (Akun Login) *</label>
+                  <input
+                    type="email"
+                    required
+                    value={showEditDoctorModal.email || ''}
+                    onChange={(e) =>
+                      setShowEditDoctorModal({ ...showEditDoctorModal, email: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-xl border border-medical-border"
+                  />
+                </div>
+                <div>
                   <label className="block font-semibold mb-1">Spesialisasi</label>
                   <input
                     type="text"
@@ -1541,17 +1553,18 @@ export default function AdminDashboardView({
                     className="w-full px-3 py-2 rounded-xl border border-medical-border"
                   />
                 </div>
-                <div>
-                  <label className="block font-semibold mb-1">Nomor WhatsApp</label>
-                  <input
-                    type="tel"
-                    value={showEditDoctorModal.phone || ''}
-                    onChange={(e) =>
-                      setShowEditDoctorModal({ ...showEditDoctorModal, phone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-medical-border"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Nomor WhatsApp</label>
+                <input
+                  type="tel"
+                  value={showEditDoctorModal.phone || ''}
+                  onChange={(e) =>
+                    setShowEditDoctorModal({ ...showEditDoctorModal, phone: e.target.value })
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-medical-border"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -23,6 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+*.tsbuildinfo
 
 # OS & Editor files
 .DS_Store

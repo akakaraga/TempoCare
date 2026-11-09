@@ -191,6 +191,9 @@ export const db = {
   // 2. STAFF / DOCTORS CRUD
   // ----------------------------------------------------------------------------
   async getStaffList(role?: string): Promise<Staff[]> {
+    const store = loadLocalStore();
+    let localStaffList = store.staff || [];
+
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
@@ -198,36 +201,44 @@ export const db = {
         if (role) query = query.eq('role', role);
         const { data, error } = await query;
         if (!error && data && data.length > 0) {
-          const store = loadLocalStore();
+          // Merge Supabase staff dengan local staff (mempertahankan password yang sudah tersimpan di lokal)
+          const mergedStaff = (data as Staff[]).map((supaStaff) => {
+            const existingLocal = localStaffList.find(
+              (s) => s.id === supaStaff.id || (s.email && s.email.toLowerCase() === (supaStaff.email || '').toLowerCase())
+            );
+            return {
+              ...supaStaff,
+              password: existingLocal?.password || (supaStaff as any).password,
+              assigned_service_ids: supaStaff.assigned_service_ids || existingLocal?.assigned_service_ids || [],
+            };
+          });
+
+          const supaIds = new Set(data.map((d: any) => d.id));
+          const supaEmails = new Set(data.map((d: any) => (d.email || '').toLowerCase()));
+          const unsyncedLocal = localStaffList.filter(
+            (l) => !supaIds.has(l.id) && !supaEmails.has((l.email || '').toLowerCase())
+          );
+
+          const finalList = [...mergedStaff, ...unsyncedLocal];
           if (!role) {
-            store.staff = data as Staff[];
+            store.staff = finalList;
             saveLocalStore(store);
           }
-          return data as Staff[];
+          localStaffList = finalList;
         }
       } catch (err) {
         console.warn('[Supabase getStaffList]', err);
       }
     }
 
-    const store = loadLocalStore();
-    let list = store.staff || [];
+    let list = localStaffList;
     if (role) list = list.filter((s) => s.role === role);
     return list;
   },
 
   async getStaffById(id: string): Promise<Staff | null> {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.from('staff').select('*').eq('id', id).single();
-        if (!error && data) return data as Staff;
-      } catch (err) {
-        console.warn('[Supabase getStaffById]', err);
-      }
-    }
-    const store = loadLocalStore();
-    return (store.staff || []).find((s) => s.id === id) || null;
+    const list = await this.getStaffList();
+    return list.find((s) => s.id === id) || null;
   },
 
   async createStaff(staffData: Omit<Staff, 'id' | 'created_at'>): Promise<Staff> {
@@ -265,12 +276,7 @@ export const db = {
       }
     }
 
-    // 2. Simpan ke local store persisten terlebih dahulu (Dijamin Tidak Reset)
-    const store = loadLocalStore();
-    store.staff = [newStaff, ...(store.staff || []).filter((s) => s.id !== newStaff.id)];
-    saveLocalStore(store);
-
-    // 3. Simpan ke Supabase PostgreSQL tabel staff
+    // 2. Simpan ke Supabase PostgreSQL tabel staff
     if (supabase) {
       try {
         const { password, ...staffDbRecord } = newStaff;
@@ -284,6 +290,11 @@ export const db = {
         console.warn('[Supabase createStaff Exception]', err);
       }
     }
+
+    // 3. Simpan ke local store persisten
+    const store = loadLocalStore();
+    store.staff = [newStaff, ...(store.staff || []).filter((s) => s.id !== newStaff.id && s.email.toLowerCase() !== newStaff.email.toLowerCase())];
+    saveLocalStore(store);
 
     // Perbarui relasi staff_services
     if (newStaff.assigned_service_ids && newStaff.assigned_service_ids.length > 0) {
@@ -311,19 +322,46 @@ export const db = {
 
     const supabase = getSupabaseClient();
     if (supabase) {
-      // Jika kata sandi baru diisi dan akun memiliki user_id di Supabase Auth
-      if (updates.password && existing.user_id) {
-        try {
-          await supabase.auth.admin.updateUserById(existing.user_id, {
-            password: updates.password,
-          });
-        } catch (err) {
-          console.warn('[Supabase Auth updateUserById]', err);
+      // Jika kata sandi baru diisi, sinkronkan ke Supabase Auth
+      if (updates.password) {
+        if (existing.user_id) {
+          try {
+            await supabase.auth.admin.updateUserById(existing.user_id, {
+              password: updates.password,
+              email: updates.email || existing.email,
+            });
+          } catch (err) {
+            console.warn('[Supabase Auth updateUserById]', err);
+          }
+        } else {
+          // Buat akun baru di Supabase Auth jika user_id belum ada
+          try {
+            const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
+              email: updates.email || existing.email,
+              password: updates.password,
+              email_confirm: true,
+              user_metadata: {
+                full_name: updates.full_name || existing.full_name,
+                role: updates.role || existing.role,
+              },
+            });
+            if (!createErr && newUser?.user) {
+              updated.user_id = newUser.user.id;
+              list[index].user_id = newUser.user.id;
+              store.staff = list;
+              saveLocalStore(store);
+            }
+          } catch (err) {
+            console.warn('[Supabase Auth createUser on updateStaff]', err);
+          }
         }
       }
 
       try {
         const { password, ...staffUpdates } = updates;
+        if (updated.user_id && !staffUpdates.user_id) {
+          (staffUpdates as any).user_id = updated.user_id;
+        }
         await supabase.from('staff').update(staffUpdates).eq('id', id);
       } catch (err) {
         console.warn('[Supabase updateStaff]', err);

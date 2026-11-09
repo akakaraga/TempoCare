@@ -32,7 +32,8 @@
       "practice_start_time": "08:00:00",
       "practice_end_time": "17:00:00",
       "assigned_service_ids": [],
-      "created_at": "2026-11-03T04:44:41.04095+00:00"
+      "created_at": "2026-11-03T04:44:41.04095+00:00",
+      "password": "admin1212"
     },
     {
       "id": "a4d9a72f-5569-4e51-ad42-4f1721d30122",
@@ -58,7 +59,7 @@
     },
     {
       "id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
-      "user_id": null,
+      "user_id": "4d0d48d6-52ae-401f-824f-a1082bbc3b3f",
       "full_name": "dr. Rahmat",
       "role": "doctor",
       "specialization": "Sp. Gigi",
@@ -76,7 +77,8 @@
       "assigned_service_ids": [
         "8c22e2ec-5711-4be0-8b54-3762706c70e2"
       ],
-      "created_at": "2026-11-06T07:58:27.461+00:00"
+      "created_at": "2026-11-06T07:58:27.461+00:00",
+      "password": "rahmatgigi"
     }
   ],
   "services": [
@@ -139,9 +141,9 @@
       "appointment_date": "2026-11-09",
       "start_time": "14:30",
       "end_time": "15:00",
-      "status": "confirmed",
+      "status": "completed",
       "initial_complaint": "Mau Scaling Gigi",
-      "medical_notes": null,
+      "medical_notes": "-",
       "queue_number": "G-001",
       "reschedule_token": "35b7fdb8-df8c-4b63-a80e-23e15f6aedbb",
       "token_expires_at": "2026-11-08T07:30:00.000Z",
