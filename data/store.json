@@ -55,7 +55,8 @@
       "assigned_service_ids": [
         "601eb55f-7d16-44e3-bc1e-7de15db91a4c"
       ],
-      "created_at": "2026-11-07T02:45:11.883+00:00"
+      "created_at": "2026-11-07T02:45:11.883+00:00",
+      "password": "budianton"
     },
     {
       "id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
@@ -112,6 +113,63 @@
     }
   ],
   "appointments": [
+    {
+      "id": "7b93474d-2683-44ca-8bf1-13447f732461",
+      "patient_name": "Aka",
+      "patient_whatsapp": "089123123321",
+      "patient_email": null,
+      "service_id": "601eb55f-7d16-44e3-bc1e-7de15db91a4c",
+      "staff_id": "a4d9a72f-5569-4e51-ad42-4f1721d30122",
+      "appointment_date": "2026-11-10",
+      "start_time": "19:00",
+      "end_time": "19:25",
+      "status": "confirmed",
+      "initial_complaint": "Flu",
+      "medical_notes": null,
+      "queue_number": "U-001",
+      "reschedule_token": "c4a2b9fd-f479-4a91-a1bb-d69ddcf3ec62",
+      "token_expires_at": "2026-11-09T12:00:00.000Z",
+      "is_walk_in": false,
+      "created_at": "2026-11-10T09:33:34.747Z"
+    },
+    {
+      "id": "07d1a7b9-c66d-49d6-9198-05eac7431dd2",
+      "patient_name": "Fandi",
+      "patient_whatsapp": "087890890890",
+      "patient_email": "fandi@gmail.com",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2",
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "appointment_date": "2026-11-12",
+      "start_time": "15:00",
+      "end_time": "15:30",
+      "status": "confirmed",
+      "initial_complaint": "Scaling Gigi",
+      "medical_notes": null,
+      "queue_number": "G-002",
+      "reschedule_token": "4f69477d-dc93-4dfc-a6e0-f252ae64e40d",
+      "token_expires_at": "2026-11-11T08:00:00.000Z",
+      "is_walk_in": false,
+      "created_at": "2026-11-10T09:10:52.671Z"
+    },
+    {
+      "id": "978c03c5-b4e0-4992-846c-e32885552e47",
+      "patient_name": "Sigit",
+      "patient_whatsapp": "089789789789",
+      "patient_email": "sigit@gmail.com",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2",
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "appointment_date": "2026-11-12",
+      "start_time": "15:30",
+      "end_time": "16:00",
+      "status": "confirmed",
+      "initial_complaint": "Gigi Berlubang",
+      "medical_notes": null,
+      "queue_number": "G-001",
+      "reschedule_token": "869df478-ac57-44c8-b3a5-0b8bceba0498",
+      "token_expires_at": "2026-11-11T08:30:00.000Z",
+      "is_walk_in": false,
+      "created_at": "2026-11-10T09:08:51.078Z"
+    },
     {
       "id": "f643ca9a-f08f-48e9-a0ac-df2f406dec86",
       "patient_name": "Helga Aka Wibistara",

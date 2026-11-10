@@ -738,11 +738,23 @@ export const db = {
       return false;
     });
 
-    // Urutkan: jadwal aktif (confirmed) terlebih dahulu, lalu berdasarkan tanggal terbaru
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    const isUpcoming = (apt: Appointment) => apt.status === 'confirmed' && apt.appointment_date >= todayStr;
+
+    // Urutkan: jadwal aktif mendatang terlebih dahulu (terdekat ke terjauh), lalu riwayat (terbaru ke terlama)
     matched.sort((a, b) => {
-      if (a.status === 'confirmed' && b.status !== 'confirmed') return -1;
-      if (a.status !== 'confirmed' && b.status === 'confirmed') return 1;
-      return b.appointment_date.localeCompare(a.appointment_date);
+      const aUp = isUpcoming(a);
+      const bUp = isUpcoming(b);
+      if (aUp && !bUp) return -1;
+      if (!aUp && bUp) return 1;
+      if (aUp && bUp) {
+        const dateCmp = a.appointment_date.localeCompare(b.appointment_date);
+        if (dateCmp !== 0) return dateCmp;
+        return (a.start_time || '').localeCompare(b.start_time || '');
+      }
+      const dateCmpDesc = b.appointment_date.localeCompare(a.appointment_date);
+      if (dateCmpDesc !== 0) return dateCmpDesc;
+      return (b.start_time || '').localeCompare(a.start_time || '');
     });
 
     return matched;

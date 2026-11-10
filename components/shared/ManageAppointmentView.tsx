@@ -13,27 +13,49 @@ import {
   ArrowLeft,
   User,
   Stethoscope,
-  Info,
-  CalendarCheck,
   Search,
-  RefreshCw
+  RefreshCw,
+  History,
+  FileText,
+  ChevronRight,
+  CalendarPlus
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
 interface ManageAppointmentViewProps {
-  initialAppointment: Appointment | null;
+  initialAppointments?: Appointment[];
+  initialAppointment?: Appointment | null;
   initialToken?: string;
   initialNotFound?: boolean;
 }
 
+function isUpcomingAppointment(apt: Appointment): boolean {
+  if (apt.status !== 'confirmed') return false;
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+  return apt.appointment_date >= todayStr;
+}
+
 export default function ManageAppointmentView({
-  initialAppointment,
+  initialAppointments,
+  initialAppointment = null,
   initialToken = '',
   initialNotFound = false,
 }: ManageAppointmentViewProps) {
+  const resolvedInitialList: Appointment[] =
+    initialAppointments && initialAppointments.length > 0
+      ? initialAppointments
+      : initialAppointment
+      ? [initialAppointment]
+      : [];
+
   const [tokenInput, setTokenInput] = useState<string>(initialToken);
-  const [appointment, setAppointment] = useState<Appointment | null>(initialAppointment);
+  const [appointmentsList, setAppointmentsList] = useState<Appointment[]>(resolvedInitialList);
+  const [activeView, setActiveView] = useState<'upcoming' | 'history'>('upcoming');
+  const [selectedUpcomingId, setSelectedUpcomingId] = useState<string | null>(
+    resolvedInitialList.find(isUpcomingAppointment)?.id || null
+  );
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [searching, setSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string | null>(
     initialNotFound
@@ -48,6 +70,14 @@ export default function ManageAppointmentView({
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
   const [submittingAction, setSubmittingAction] = useState<boolean>(false);
+
+  const upcomingAppointments = appointmentsList.filter(isUpcomingAppointment);
+  const historyAppointments = appointmentsList.filter((a) => !isUpcomingAppointment(a));
+
+  const appointment: Appointment | null =
+    activeView === 'upcoming'
+      ? upcomingAppointments.find((a) => a.id === selectedUpcomingId) || upcomingAppointments[0] || null
+      : historyAppointments.find((a) => a.id === selectedHistoryId) || null;
 
   // Check if current time is within H-1 (less than 24h)
   const isTimeLocked = () => {
@@ -112,7 +142,10 @@ export default function ManageAppointmentView({
       );
 
       if (res.success && res.appointment) {
-        setAppointment(res.appointment);
+        const updatedApt = res.appointment;
+        setAppointmentsList((prev) =>
+          prev.map((item) => (item.id === updatedApt.id ? updatedApt : item))
+        );
         setIsRescheduling(false);
         toast.success('Jadwal kunjungan Anda berhasil dipindahkan!');
       } else {
@@ -133,7 +166,15 @@ export default function ManageAppointmentView({
     try {
       const res = await cancelAppointmentAction(appointment.reschedule_token);
       if (res.success) {
-        setAppointment({ ...appointment, status: 'cancelled' });
+        const cancelledId = appointment.id;
+        setAppointmentsList((prev) =>
+          prev.map((item) =>
+            item.id === cancelledId ? { ...item, status: 'cancelled' } : item
+          )
+        );
+        setIsRescheduling(false);
+        setSelectedHistoryId(cancelledId);
+        setActiveView('history');
         toast.success('Jadwal konsultasi Anda telah dibatalkan.');
       } else {
         toast.error(res.error || 'Gagal membatalkan jadwal.');
@@ -157,9 +198,21 @@ export default function ManageAppointmentView({
     setSearchError(null);
     try {
       const res = await findAppointmentAction(query);
-      if (res.success && res.appointment) {
-        setAppointment(res.appointment);
-        toast.success(`Jadwal pasien ${res.appointment.patient_name} ditemukan!`);
+      if (res.success && res.appointments && res.appointments.length > 0) {
+        const list = res.appointments;
+        setAppointmentsList(list);
+        const firstUpcoming = list.find(isUpcomingAppointment);
+        setSelectedUpcomingId(firstUpcoming?.id || null);
+        setSelectedHistoryId(null);
+        setActiveView('upcoming');
+        setIsRescheduling(false);
+
+        const patientName = list[0].patient_name;
+        if (firstUpcoming) {
+          toast.success(`Jadwal mendatang pasien ${patientName} ditemukan!`);
+        } else {
+          toast.info(`Belum ada jadwal mendatang untuk ${patientName}. Anda dapat melihat riwayat pemeriksaan.`);
+        }
       } else {
         setSearchError(res.error || 'Jadwal pasien tidak ditemukan. Periksa kembali nomor antrean atau nomor WhatsApp Anda.');
         toast.error(res.error || 'Jadwal tidak ditemukan');
@@ -183,11 +236,15 @@ export default function ManageAppointmentView({
           <ArrowLeft className="w-4 h-4" /> Kembali ke Halaman Utama
         </Link>
 
-        {appointment && (
+        {appointmentsList.length > 0 && (
           <button
             type="button"
             onClick={() => {
-              setAppointment(null);
+              setAppointmentsList([]);
+              setSelectedUpcomingId(null);
+              setSelectedHistoryId(null);
+              setActiveView('upcoming');
+              setIsRescheduling(false);
               setTokenInput('');
               setSearchError(null);
             }}
@@ -198,7 +255,7 @@ export default function ManageAppointmentView({
         )}
       </div>
 
-      {!appointment ? (
+      {appointmentsList.length === 0 ? (
         /* Token Search Form */
         <div className="bg-white rounded-3xl border border-medical-border p-8 text-center shadow-soft space-y-4">
           <h2 className="text-xl sm:text-2xl font-extrabold text-medical-text">
@@ -297,8 +354,228 @@ export default function ManageAppointmentView({
           )}
         </div>
       ) : (
-        /* Appointment Card */
-        <div className="bg-white rounded-3xl border border-medical-border shadow-soft overflow-hidden">
+        <div className="space-y-5">
+          {/* Tab Switcher: Jadwal Mendatang vs Riwayat Pemeriksaan */}
+          <div className="bg-white p-2 rounded-2xl border border-medical-border shadow-xs flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveView('upcoming');
+                  setSelectedHistoryId(null);
+                  setIsRescheduling(false);
+                }}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeView === 'upcoming'
+                    ? 'bg-medical-primary text-white shadow-xs'
+                    : 'text-medical-muted hover:bg-gray-50 hover:text-medical-text'
+                }`}
+              >
+                <CalendarIcon className="w-3.5 h-3.5" />
+                Jadwal Mendatang ({upcomingAppointments.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveView('history');
+                  setIsRescheduling(false);
+                }}
+                className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeView === 'history'
+                    ? 'bg-medical-primary text-white shadow-xs'
+                    : 'text-medical-muted hover:bg-gray-50 hover:text-medical-text'
+                }`}
+              >
+                <History className="w-3.5 h-3.5" />
+                Riwayat Pemeriksaan ({historyAppointments.length})
+              </button>
+            </div>
+
+            {appointmentsList[0] && (
+              <div className="hidden sm:flex items-center gap-2 px-3 text-[11px] text-medical-muted">
+                <User className="w-3.5 h-3.5 text-medical-primary" />
+                <span className="font-semibold text-medical-text">{appointmentsList[0].patient_name}</span>
+              </div>
+            )}
+          </div>
+
+          {/* VIEW: JADWAL MENDATANG KOSONG */}
+          {activeView === 'upcoming' && upcomingAppointments.length === 0 && (
+            <div className="bg-white rounded-3xl border border-medical-border p-8 text-center shadow-soft space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-medical-subtle text-medical-primary flex items-center justify-center mx-auto">
+                <CalendarIcon className="w-6 h-6" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-base sm:text-lg font-extrabold text-medical-text">
+                  Tidak Ada Jadwal Pemeriksaan Mendatang
+                </h3>
+                <p className="text-xs text-medical-muted max-w-md mx-auto leading-relaxed">
+                  Saat ini Anda tidak memiliki jadwal kunjungan aktif/mendatang untuk pencarian{' '}
+                  <strong className="text-medical-text">{tokenInput || 'tersebut'}</strong>.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                {historyAppointments.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveView('history')}
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <History className="w-3.5 h-3.5" /> Lihat Riwayat Pemeriksaan ({historyAppointments.length})
+                  </button>
+                )}
+                <Link
+                  href="/#booking"
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold border border-medical-border text-medical-primary hover:bg-medical-subtle transition-all flex items-center justify-center gap-1.5"
+                >
+                  <CalendarPlus className="w-3.5 h-3.5" /> Daftar Janji Temu Baru
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* SELECTOR JIKA ADA LEBIH DARI 1 JADWAL MENDATANG */}
+          {activeView === 'upcoming' && upcomingAppointments.length > 1 && (
+            <div className="bg-white rounded-2xl border border-medical-border p-4 space-y-2.5 shadow-xs">
+              <span className="text-[11px] font-bold text-medical-muted uppercase tracking-wider block">
+                Pilih Jadwal Mendatang ({upcomingAppointments.length} Jadwal Aktif):
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {upcomingAppointments.map((upApt) => {
+                  const isActive = appointment?.id === upApt.id;
+                  return (
+                    <button
+                      key={upApt.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedUpcomingId(upApt.id);
+                        setIsRescheduling(false);
+                      }}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'border-medical-primary bg-medical-subtle/60 ring-1 ring-medical-primary'
+                          : 'border-gray-200 hover:border-medical-primary/50 bg-gray-50/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-extrabold text-xs text-medical-primary">
+                          {upApt.queue_number || 'A-001'}
+                        </span>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          {upApt.appointment_date} • {upApt.start_time}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-medical-text mt-1 truncate">
+                        {upApt.service?.name || 'Poliklinik'}
+                      </p>
+                      <p className="text-[11px] text-medical-muted truncate">
+                        {upApt.staff?.full_name || 'Dokter'}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: DAFTAR RIWAYAT PEMERIKSAAN */}
+          {activeView === 'history' && !appointment && (
+            <div className="space-y-3">
+              {historyAppointments.length === 0 ? (
+                <div className="bg-white rounded-3xl border border-medical-border p-8 text-center shadow-soft space-y-2">
+                  <History className="w-8 h-8 text-medical-muted/60 mx-auto" />
+                  <h3 className="text-sm font-bold text-medical-text">
+                    Belum Ada Riwayat Pemeriksaan
+                  </h3>
+                  <p className="text-xs text-medical-muted">
+                    Anda belum memiliki riwayat pemeriksaan yang selesai atau dibatalkan sebelumnya.
+                  </p>
+                </div>
+              ) : (
+                historyAppointments.map((hist) => (
+                  <div
+                    key={hist.id}
+                    className="bg-white rounded-2xl border border-medical-border p-5 shadow-xs hover:border-medical-primary/50 transition-all space-y-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-gray-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-mono text-base font-extrabold text-medical-primary bg-medical-subtle px-2.5 py-1 rounded-lg">
+                          {hist.queue_number || '-'}
+                        </span>
+                        <div>
+                          <p className="text-xs font-bold text-medical-text">
+                            {hist.service?.name || 'Poliklinik'} • {hist.staff?.full_name || 'Dokter'}
+                          </p>
+                          <p className="text-[11px] text-medical-muted flex items-center gap-1.5">
+                            <CalendarIcon className="w-3 h-3" /> {hist.appointment_date} • {hist.start_time} - {hist.end_time} WIB
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                          hist.status === 'completed'
+                            ? 'bg-blue-100 text-blue-800'
+                            : hist.status === 'cancelled'
+                            ? 'bg-rose-100 text-rose-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {hist.status === 'completed'
+                          ? 'Sudah Selesai'
+                          : hist.status === 'cancelled'
+                          ? 'Dibatalkan'
+                          : 'Jadwal Terlewat'}
+                      </span>
+                    </div>
+
+                    {hist.initial_complaint && (
+                      <p className="text-xs text-gray-600">
+                        <strong className="text-gray-800">Keluhan:</strong> {hist.initial_complaint}
+                      </p>
+                    )}
+
+                    {hist.medical_notes && (
+                      <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs space-y-1">
+                        <span className="font-bold text-teal-900 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-teal-600" /> Catatan Pemeriksaan Dokter:
+                        </span>
+                        <p className="text-teal-900 leading-relaxed line-clamp-2">{hist.medical_notes}</p>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedHistoryId(hist.id)}
+                        className="text-xs font-bold text-medical-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        Lihat Detail Pemeriksaan <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* BACK BUTTON SAAT MELIHAT DETAIL SALAH SATU RIWAYAT */}
+          {activeView === 'history' && appointment && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setSelectedHistoryId(null)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-medical-primary hover:underline cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Daftar Riwayat ({historyAppointments.length})
+              </button>
+            </div>
+          )}
+
+          {/* DETAIL APPOINTMENT CARD */}
+          {appointment && (
+            <div className="bg-white rounded-3xl border border-medical-border shadow-soft overflow-hidden">
           {/* Header */}
           <div className="bg-medical-subtle/70 p-6 border-b border-medical-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -308,18 +585,22 @@ export default function ManageAppointmentView({
                 </span>
                 <span
                   className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                    appointment.status === 'confirmed'
+                    isUpcomingAppointment(appointment)
                       ? 'bg-emerald-100 text-emerald-800'
                       : appointment.status === 'completed'
                       ? 'bg-blue-100 text-blue-800'
-                      : 'bg-rose-100 text-rose-800'
+                      : appointment.status === 'cancelled'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-amber-100 text-amber-800'
                   }`}
                 >
-                  {appointment.status === 'confirmed'
+                  {isUpcomingAppointment(appointment)
                     ? 'Jadwal Aktif'
                     : appointment.status === 'completed'
                     ? 'Sudah Selesai'
-                    : 'Dibatalkan'}
+                    : appointment.status === 'cancelled'
+                    ? 'Dibatalkan'
+                    : 'Jadwal Terlewat'}
                 </span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-medical-primary mt-1 font-mono">
@@ -330,11 +611,13 @@ export default function ManageAppointmentView({
             <div className="text-left sm:text-right text-xs text-medical-muted">
               <span className="block font-medium">Status Kehadiran:</span>
               <strong className="text-medical-text text-sm">
-                {appointment.status === 'confirmed'
+                {isUpcomingAppointment(appointment)
                   ? 'Menunggu Kedatangan'
                   : appointment.status === 'completed'
                   ? 'Pemeriksaan Selesai'
-                  : 'Telah Dibatalkan'}
+                  : appointment.status === 'cancelled'
+                  ? 'Telah Dibatalkan'
+                  : 'Tanggal Sudah Berlalu'}
               </strong>
             </div>
           </div>
@@ -392,7 +675,7 @@ export default function ManageAppointmentView({
             )}
 
             {/* Reschedule section */}
-            {appointment.status === 'confirmed' && (
+            {isUpcomingAppointment(appointment) && (
               <>
                 {isRescheduling ? (
                   /* Reschedule Form */
@@ -533,6 +816,32 @@ export default function ManageAppointmentView({
               </>
             )}
           </div>
+            </div>
+          )}
+
+          {/* QUICK ACCESS FOOTER KE RIWAYAT SAAT MELIHAT JADWAL MENDATANG */}
+          {activeView === 'upcoming' && upcomingAppointments.length > 0 && historyAppointments.length > 0 && (
+            <div className="bg-white rounded-2xl border border-medical-border p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5 text-xs text-medical-muted">
+                <div className="w-8 h-8 rounded-xl bg-medical-subtle text-medical-primary flex items-center justify-center shrink-0">
+                  <History className="w-4 h-4" />
+                </div>
+                <span>
+                  Anda memiliki <strong className="text-medical-text">{historyAppointments.length} riwayat pemeriksaan</strong> sebelumnya.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveView('history');
+                  setIsRescheduling(false);
+                }}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold text-medical-primary bg-medical-subtle hover:bg-medical-primary hover:text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <History className="w-3.5 h-3.5" /> Lihat Riwayat Pemeriksaan
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
