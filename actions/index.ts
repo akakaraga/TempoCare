@@ -402,7 +402,7 @@ export async function findAppointmentAction(query: string) {
     if (!appointments || appointments.length === 0) {
       return {
         success: false,
-        error: `Jadwal pasien tidak ditemukan untuk "${trimmed}". Mohon periksa kembali input serta data yang Anda masukkan.`,
+        error: `Jadwal pasien tidak ditemukan untuk "${trimmed}". Pastikan Anda memasukkan Nomor Antrean atau Nomor WhatsApp yang terdaftar dengan benar.`,
         notFound: true,
         searchedQuery: trimmed,
       };

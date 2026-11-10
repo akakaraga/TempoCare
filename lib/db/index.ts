@@ -669,12 +669,17 @@ export const db = {
     }));
   },
 
-  async findAppointments(query: string): Promise<Appointment[]> {
+  async findAppointments(
+    query: string,
+    options?: { allowToken?: boolean }
+  ): Promise<Appointment[]> {
     if (!query || !query.trim()) return [];
 
     let cleanQuery = query.trim();
-    // Jika query berupa URL (misal ".../manage?token=xxx")
-    if (cleanQuery.includes('token=')) {
+    const allowToken = Boolean(options?.allowToken);
+
+    // Jika query berupa URL (misal ".../manage?token=xxx") dan token diizinkan
+    if (allowToken && cleanQuery.includes('token=')) {
       try {
         const url = new URL(cleanQuery, 'http://localhost');
         const tokenParam = url.searchParams.get('token');
@@ -685,7 +690,8 @@ export const db = {
     }
 
     const lowerQuery = cleanQuery.toLowerCase();
-    const cleanNumeric = cleanQuery.replace(/\D/g, '');
+    const isPhoneFormat = /^[+\d\s\-()]+$/.test(cleanQuery);
+    const cleanNumeric = isPhoneFormat ? cleanQuery.replace(/\D/g, '') : '';
     const cleanQueueInput = cleanQuery.replace(/[\s\-_]/g, '').toLowerCase();
 
     // Normalisasi nomor telepon Indonesia (hilangkan awalan 62 atau 0 untuk pembanding)
@@ -696,43 +702,31 @@ export const db = {
     const allAppointments = await this.getAppointments();
 
     const matched = allAppointments.filter((a) => {
-      // 1. Token exact match
-      if (a.reschedule_token && a.reschedule_token.toLowerCase() === lowerQuery) return true;
+      // 1. Token exact match (hanya jika dibuka melalui tautan ?token= dari konfirmasi booking/email)
+      if (allowToken && a.reschedule_token && a.reschedule_token.toLowerCase() === lowerQuery) {
+        return true;
+      }
 
-      // 2. ID exact match
-      if (a.id && a.id.toLowerCase() === lowerQuery) return true;
-
-      // 3. Queue number match yang fleksibel (contoh: "U-002", "u-002", "U002", "u002", "002")
-      if (a.queue_number) {
+      // 2. Nomor Antrean exact match yang fleksibel terhadap huruf besar/kecil & tanda hubung (contoh: "U-002", "u-002", "U002")
+      if (a.queue_number && cleanQueueInput.length >= 2) {
         const dbQueueLower = a.queue_number.toLowerCase();
         const dbQueueClean = a.queue_number.replace(/[\s\-_]/g, '').toLowerCase();
 
-        if (dbQueueLower === lowerQuery) return true;
-        if (dbQueueClean === cleanQueueInput) return true;
-        if (cleanQueueInput.length >= 2 && dbQueueClean.includes(cleanQueueInput)) return true;
+        if (dbQueueLower === lowerQuery || dbQueueClean === cleanQueueInput) {
+          return true;
+        }
       }
 
-      // 4. WhatsApp match yang fleksibel & sinkron
-      if (a.patient_whatsapp && a.patient_whatsapp !== '-') {
+      // 3. Nomor WhatsApp exact match dengan normalisasi kode negara (+62 / 62 / 0)
+      if (isPhoneFormat && phoneCore.length >= 7 && a.patient_whatsapp && a.patient_whatsapp !== '-') {
         const dbPhoneNumeric = a.patient_whatsapp.replace(/\D/g, '');
         let dbPhoneCore = dbPhoneNumeric;
         if (dbPhoneCore.startsWith('62')) dbPhoneCore = dbPhoneCore.slice(2);
         if (dbPhoneCore.startsWith('0')) dbPhoneCore = dbPhoneCore.slice(1);
 
-        // Jika nomor yang diinput memiliki setidaknya 6 digit angka
-        if (phoneCore.length >= 6) {
-          if (dbPhoneNumeric === cleanNumeric) return true;
-          if (dbPhoneCore === phoneCore) return true;
-          if (dbPhoneCore.endsWith(phoneCore) || phoneCore.endsWith(dbPhoneCore)) return true;
+        if (dbPhoneNumeric === cleanNumeric || dbPhoneCore === phoneCore) {
+          return true;
         }
-      }
-
-      // 5. Email exact match
-      if (a.patient_email && a.patient_email.toLowerCase() === lowerQuery) return true;
-
-      // 6. Patient Name partial match (jika panjang >= 3)
-      if (cleanQuery.length >= 3 && a.patient_name && a.patient_name.toLowerCase().includes(lowerQuery)) {
-        return true;
       }
 
       return false;
@@ -761,7 +755,7 @@ export const db = {
   },
 
   async getAppointmentByToken(token: string): Promise<Appointment | null> {
-    const list = await this.findAppointments(token);
+    const list = await this.findAppointments(token, { allowToken: true });
     return list.length > 0 ? list[0] : null;
   },
 

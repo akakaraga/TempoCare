@@ -10,7 +10,7 @@ interface ManagePageProps {
 
 export default async function ManagePage({ searchParams }: ManagePageProps) {
   const token = searchParams.token || '';
-  const appointments = token ? await db.findAppointments(token) : [];
+  const appointments = token ? await db.findAppointments(token, { allowToken: true }) : [];
   const initialNotFound = Boolean(token && appointments.length === 0);
 
   return (

@@ -190,7 +190,7 @@ export default function ManageAppointmentView({
     e.preventDefault();
     const query = tokenInput.trim();
     if (!query) {
-      toast.error('Silakan masukkan nomor antrean, nomor WhatsApp, atau kode jadwal Anda.');
+      toast.error('Silakan masukkan nomor antrean atau nomor WhatsApp Anda.');
       return;
     }
 
