@@ -478,7 +478,7 @@ export default function AdminDashboardView({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-medical-text">Dashboard Booking</span>
+                <span className="font-bold text-base text-medical-text">Dashboard Admin</span>
               </div>
               <span className="text-xs text-medical-muted block truncate max-w-xs">
               </span>
@@ -492,14 +492,6 @@ export default function AdminDashboardView({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-xs"
             >
               <UserPlus className="w-3.5 h-3.5" /> Pasien Walk-in
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowBlockOutModal(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-700 transition-all shadow-xs"
-            >
-              <Ban className="w-3.5 h-3.5" /> Blokir Jam
             </button>
 
             <form action={logoutAction}>
