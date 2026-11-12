@@ -9,25 +9,33 @@ export default async function DoctorDashboardPage() {
   const cookieStore = cookies();
   const staffId = cookieStore.get('tempocare_staff_id')?.value;
 
-  const staffList = await db.getStaffList();
-  // Find doctor or fallback to first doctor in list
+  const [staffList, services, clinicSettings] = await Promise.all([
+    db.getStaffList(),
+    db.getServices(),
+    db.getClinicSettings(),
+  ]);
+
+  // Find current logged-in staff or fallback to first doctor in list
   let currentDoctor = staffList.find((s) => s.id === staffId || s.user_id === staffId);
   if (!currentDoctor) {
     currentDoctor = staffList.find((s) => s.role === 'doctor') || staffList[0];
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
 
-  // Fetch appointments for this doctor (seluruh jadwal untuk dokter ini)
-  const appointments = await db.getAppointments({
-    staffId: currentDoctor.id,
-  });
+  // Dokter melihat jadwal miliknya sendiri; Tenaga Medis (nurse/receptionist) melihat jadwal pelayanan klinik
+  const appointments = await db.getAppointments(
+    currentDoctor.role === 'doctor' ? { staffId: currentDoctor.id } : undefined
+  );
 
   return (
     <DoctorQueueView
       doctor={currentDoctor}
       initialAppointments={appointments}
       selectedDate={todayStr}
+      services={services}
+      staffList={staffList}
+      clinicName={clinicSettings.name}
     />
   );
 }

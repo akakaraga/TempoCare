@@ -46,9 +46,11 @@ import {
   FileText,
   ClipboardList,
   Copy,
-  Printer
+  Printer,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ReportPanel from './ReportPanel';
 
 interface AdminDashboardViewProps {
   initialAppointments: Appointment[];
@@ -96,7 +98,7 @@ export default function AdminDashboardView({
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
-    'appointments' | 'services' | 'doctors' | 'blockouts' | 'settings'
+    'appointments' | 'services' | 'doctors' | 'blockouts' | 'reports' | 'settings'
   >('appointments');
 
   // Filters for Appointments
@@ -470,7 +472,7 @@ export default function AdminDashboardView({
   return (
     <div className="min-h-screen bg-medical-bg">
       {/* Top Navbar */}
-      <header className="bg-white border-b border-medical-border sticky top-0 z-30 shadow-xs">
+      <header className="bg-white border-b border-medical-border sticky top-0 z-30 shadow-xs print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-medical-primary flex items-center justify-center text-white shadow-xs">
@@ -509,7 +511,7 @@ export default function AdminDashboardView({
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex items-center justify-between border-b border-medical-border pb-2 overflow-x-auto">
+        <div className="flex items-center justify-between border-b border-medical-border pb-2 overflow-x-auto print:hidden">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -557,6 +559,18 @@ export default function AdminDashboardView({
               }`}
             >
               Blokir Jam / Cuti ({blockOuts.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('reports')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                activeTab === 'reports'
+                  ? 'bg-medical-primary text-white shadow-xs'
+                  : 'text-medical-muted hover:text-medical-text hover:bg-medical-subtle'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" /> Laporan & Rekap
             </button>
 
             <button
@@ -1296,6 +1310,19 @@ export default function AdminDashboardView({
               </div>
             </form>
           </div>
+        )}
+
+        {/* ------------------------------------------------------------------ */}
+        {/* TAB 6: LAPORAN & REKAPITULASI */}
+        {/* ------------------------------------------------------------------ */}
+        {activeTab === 'reports' && (
+          <ReportPanel
+            mode="admin"
+            appointments={appointments}
+            staffList={doctors}
+            services={serviceList}
+            clinicName={settingsForm.name}
+          />
         )}
       </main>
 

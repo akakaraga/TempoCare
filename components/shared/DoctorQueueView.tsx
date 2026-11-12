@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Appointment, Staff } from '@/lib/types';
+import { Appointment, Service, Staff } from '@/lib/types';
 import { updateMedicalNotesAction } from '@/actions';
 import { logoutAction } from '@/actions/auth';
 import {
@@ -15,22 +15,32 @@ import {
   AlertCircle,
   LogOut,
   CalendarDays,
-  ListFilter
+  ListFilter,
+  BarChart3,
+  ClipboardList
 } from 'lucide-react';
 import { toast } from 'sonner';
+import ReportPanel from './ReportPanel';
 
 interface DoctorQueueViewProps {
   doctor: Staff;
   initialAppointments: Appointment[];
   selectedDate: string;
+  services?: Service[];
+  staffList?: Staff[];
+  clinicName?: string;
 }
 
 export default function DoctorQueueView({
   doctor,
   initialAppointments,
   selectedDate,
+  services = [],
+  staffList = [],
+  clinicName = 'TempoCare',
 }: DoctorQueueViewProps) {
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [activeTab, setActiveTab] = useState<'queue' | 'reports'>('queue');
   const [viewMode, setViewMode] = useState<'today' | 'upcoming' | 'all' | 'custom'>('all');
   const [customDate, setCustomDate] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -131,7 +141,7 @@ export default function DoctorQueueView({
   return (
     <div className="min-h-screen bg-medical-bg">
       {/* Top Navbar */}
-      <header className="bg-white border-b border-medical-border sticky top-0 z-30">
+      <header className="bg-white border-b border-medical-border sticky top-0 z-30 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-medical-primary flex items-center justify-center text-white">
@@ -141,11 +151,15 @@ export default function DoctorQueueView({
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base text-medical-text">{doctor.full_name}</span>
                 <span className="text-[10px] font-bold bg-medical-primary/10 text-medical-primary px-2 py-0.5 rounded-full">
-                  Dokter Praktik
+                  {doctor.role === 'doctor'
+                    ? 'Dokter Praktik'
+                    : doctor.role === 'nurse'
+                    ? 'Perawat / Tenaga Medis'
+                    : 'Resepsionis / Front Office'}
                 </span>
               </div>
               <span className="text-xs text-medical-muted block">
-                {doctor.specialization || 'Spesialis Medis'} • TempoCare
+                {doctor.specialization || 'Tenaga Medis'} • {clinicName}
               </span>
             </div>
           </div>
@@ -165,6 +179,44 @@ export default function DoctorQueueView({
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Navigation Tabs */}
+        <div className="flex items-center gap-2 border-b border-medical-border pb-2 print:hidden">
+          <button
+            type="button"
+            onClick={() => setActiveTab('queue')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'queue'
+                ? 'bg-medical-primary text-white shadow-xs'
+                : 'text-medical-muted hover:text-medical-text hover:bg-medical-subtle'
+            }`}
+          >
+            <ClipboardList className="w-3.5 h-3.5" /> Antrean & Jadwal Pasien ({appointments.length})
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('reports')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'reports'
+                ? 'bg-medical-primary text-white shadow-xs'
+                : 'text-medical-muted hover:text-medical-text hover:bg-medical-subtle'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" /> Laporan Pelayanan
+          </button>
+        </div>
+
+        {activeTab === 'reports' ? (
+          <ReportPanel
+            mode={doctor.role === 'doctor' ? 'staff' : 'admin'}
+            appointments={appointments}
+            staffList={staffList}
+            services={services}
+            currentStaff={doctor}
+            clinicName={clinicName}
+          />
+        ) : (
+          <>
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
@@ -510,6 +562,8 @@ export default function DoctorQueueView({
             </div>
           )}
         </div>
+          </>
+        )}
       </main>
 
       {/* MEDICAL NOTES & DIAGNOSIS MODAL */}

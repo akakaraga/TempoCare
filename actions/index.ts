@@ -8,12 +8,12 @@ import { cookies } from 'next/headers';
 import { Staff, Service, ClinicSettings } from '@/lib/types';
 
 /**
- * Keamanan RBAC: Verifikasi sesi Staf (Dokter atau Admin)
+ * Keamanan RBAC: Verifikasi sesi Staf (Dokter, Tenaga Medis, Resepsionis, atau Admin)
  */
 async function verifyStaffSession() {
   const cookieStore = cookies();
   const role = cookieStore.get('tempocare_role')?.value;
-  if (!role || (role !== 'doctor' && role !== 'admin')) {
+  if (!role || !['doctor', 'nurse', 'receptionist', 'admin'].includes(role)) {
     throw new Error('Akses ditolak: Anda harus login sebagai Tenaga Medis atau Staf RS.');
   }
   return { role, staffId: cookieStore.get('tempocare_staff_id')?.value };

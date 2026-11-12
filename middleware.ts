@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const isMedicalOrFrontOfficeRole = (role?: string) =>
+  role === 'doctor' || role === 'nurse' || role === 'receptionist';
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -12,12 +15,12 @@ export function middleware(request: NextRequest) {
     if (roleCookie === 'admin') {
       return NextResponse.redirect(new URL('/dashboard/admin', request.url));
     }
-    if (roleCookie === 'doctor') {
+    if (isMedicalOrFrontOfficeRole(roleCookie)) {
       return NextResponse.redirect(new URL('/dashboard/doctor', request.url));
     }
   }
 
-  // Protect doctor dashboard
+  // Protect doctor / medical staff dashboard
   if (pathname.startsWith('/dashboard/doctor')) {
     if (!roleCookie) {
       const loginUrl = new URL('/login', request.url);
@@ -25,8 +28,8 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (roleCookie !== 'doctor' && roleCookie !== 'admin') {
-      return NextResponse.redirect(new URL('/dashboard/admin', request.url));
+    if (!isMedicalOrFrontOfficeRole(roleCookie) && roleCookie !== 'admin') {
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
