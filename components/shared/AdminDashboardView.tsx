@@ -473,35 +473,35 @@ export default function AdminDashboardView({
     <div className="min-h-screen bg-medical-bg">
       {/* Top Navbar */}
       <header className="bg-white border-b border-medical-border sticky top-0 z-30 shadow-xs print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-medical-primary flex items-center justify-center text-white shadow-xs">
-              <UserCog className="w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-medical-primary flex items-center justify-center text-white shadow-xs shrink-0">
+              <UserCog className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-medical-text">Dashboard Admin</span>
+                <span className="font-bold text-sm sm:text-base text-medical-text truncate">Dashboard Admin</span>
               </div>
-              <span className="text-xs text-medical-muted block truncate max-w-xs">
-              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               type="button"
               onClick={() => setShowWalkInModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-xs"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-xs whitespace-nowrap"
             >
-              <UserPlus className="w-3.5 h-3.5" /> Pasien Walk-in
+              <UserPlus className="w-3.5 h-3.5 shrink-0" />
+              <span className="sm:hidden">Walk-in</span>
+              <span className="hidden sm:inline">Pasien Walk-in</span>
             </button>
 
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors"
+                className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 sm:px-3 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors whitespace-nowrap"
               >
-                <LogOut className="w-3.5 h-3.5" /> Keluar
+                <LogOut className="w-3.5 h-3.5 shrink-0" /> Keluar
               </button>
             </form>
           </div>

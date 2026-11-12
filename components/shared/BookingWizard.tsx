@@ -202,17 +202,17 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
   };
 
   return (
-    <div id="booking" className="w-full max-w-5xl mx-auto py-6 px-4 sm:px-6">
+    <div id="booking" className="w-full max-w-5xl mx-auto py-4 sm:py-6 px-3 sm:px-6">
       {/* Wizard Card Container */}
-      <div className="bg-white rounded-3xl border border-medical-border shadow-soft overflow-hidden">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-medical-border shadow-soft overflow-hidden">
         {/* Wizard Header & Stepper */}
-        <div className="bg-medical-subtle/70 border-b border-medical-border px-6 py-6">
+        <div className="bg-medical-subtle/70 border-b border-medical-border px-4 py-5 sm:px-6 sm:py-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-medical-border/80 text-medical-primary mb-1.5">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-white border border-medical-border/80 text-medical-primary mb-1.5">
                Formulir Pendaftaran Pasien
               </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-medical-text">
+              <h2 className="text-lg sm:text-2xl font-extrabold text-medical-text">
                 Pendaftaran Janji Temu Dokter
               </h2>
               <p className="text-xs sm:text-sm text-medical-muted mt-0.5">
@@ -221,7 +221,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
             </div>
 
                 {/* Stepper Tabs - Clean & Legible */}
-                <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-semibold overflow-x-auto pb-1">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold overflow-x-auto pb-1">
                   {[
                     { num: 1, label: 'Pilih Poli' },
                     { num: 2, label: 'Pilih Dokter' },
@@ -233,7 +233,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                       type="button"
                       onClick={() => s.num < step && setStep(s.num)}
                       disabled={s.num > step}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
+                      className={`flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl transition-all whitespace-nowrap shrink-0 ${
                         step === s.num
                           ? 'bg-medical-primary text-white shadow-xs font-bold'
                           : s.num < step
@@ -252,7 +252,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
         </div>
 
         {/* Wizard Body */}
-        <div className="p-6 sm:p-8">
+        <div className="p-4 sm:p-8">
           {/* STEP 1: PILIH POLIKLINIK / LAYANAN */}
           {step === 1 && (
             <div className="space-y-6">

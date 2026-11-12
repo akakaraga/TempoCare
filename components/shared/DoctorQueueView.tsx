@@ -142,15 +142,15 @@ export default function DoctorQueueView({
     <div className="min-h-screen bg-medical-bg">
       {/* Top Navbar */}
       <header className="bg-white border-b border-medical-border sticky top-0 z-30 print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-medical-primary flex items-center justify-center text-white">
-              <Stethoscope className="w-6 h-6" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-medical-primary flex items-center justify-center text-white shrink-0">
+              <Stethoscope className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-base text-medical-text">{doctor.full_name}</span>
-                <span className="text-[10px] font-bold bg-medical-primary/10 text-medical-primary px-2 py-0.5 rounded-full">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="font-bold text-sm sm:text-base text-medical-text truncate">{doctor.full_name}</span>
+                <span className="hidden sm:inline-block text-[10px] font-bold bg-medical-primary/10 text-medical-primary px-2 py-0.5 rounded-full whitespace-nowrap">
                   {doctor.role === 'doctor'
                     ? 'Dokter Praktik'
                     : doctor.role === 'nurse'
@@ -158,19 +158,19 @@ export default function DoctorQueueView({
                     : 'Resepsionis / Front Office'}
                 </span>
               </div>
-              <span className="text-xs text-medical-muted block">
+              <span className="text-[11px] sm:text-xs text-medical-muted block truncate">
                 {doctor.specialization || 'Tenaga Medis'} • {clinicName}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer whitespace-nowrap"
               >
-                <LogOut className="w-3.5 h-3.5" /> Keluar
+                <LogOut className="w-3.5 h-3.5 shrink-0" /> Keluar
               </button>
             </form>
           </div>
@@ -178,13 +178,13 @@ export default function DoctorQueueView({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-medical-border pb-2 print:hidden">
+        <div className="flex items-center gap-2 border-b border-medical-border pb-2 overflow-x-auto print:hidden">
           <button
             type="button"
             onClick={() => setActiveTab('queue')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'queue'
                 ? 'bg-medical-primary text-white shadow-xs'
                 : 'text-medical-muted hover:text-medical-text hover:bg-medical-subtle'
@@ -196,7 +196,7 @@ export default function DoctorQueueView({
           <button
             type="button"
             onClick={() => setActiveTab('reports')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'reports'
                 ? 'bg-medical-primary text-white shadow-xs'
                 : 'text-medical-muted hover:text-medical-text hover:bg-medical-subtle'

@@ -14,31 +14,31 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-medical-bg">
+    <div className="min-h-screen flex flex-col bg-medical-bg overflow-x-hidden">
       <Navbar clinicSettings={clinicSettings} />
 
       {/* Hero Section: Warm, Reassuring, and Patient-Centric */}
-      <section className="relative overflow-hidden pt-10 pb-12 border-b border-medical-border/60 bg-gradient-to-b from-medical-subtle/70 via-medical-bg to-medical-bg">
+      <section className="relative overflow-hidden pt-7 pb-8 sm:pt-10 sm:pb-12 border-b border-medical-border/60 bg-gradient-to-b from-medical-subtle/70 via-medical-bg to-medical-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="text-center max-w-3xl mx-auto space-y-3.5 sm:space-y-4">
             {/* Friendly Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-medical-border shadow-xs text-medical-primary">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-white border border-medical-border shadow-xs text-medical-primary">
               <span>Layanan Pendaftaran Pasien Online 24 Jam</span>
             </div>
 
             {/* Clear, Human Headline */}
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-medical-text leading-tight sm:leading-tight">
-              Daftar Berobat Jadi Lebih Mudah, <br />
+            <h1 className="text-2xl sm:text-5xl font-extrabold tracking-tight text-medical-text leading-snug sm:leading-tight">
+              Daftar Berobat Jadi Lebih Mudah, <br className="hidden sm:inline" />
               <span className="text-medical-primary">Tanpa Perlu Antre Sejak Pagi.</span>
             </h1>
 
             {/* Reassuring Subtitle */}
-            <p className="text-sm sm:text-base text-medical-muted leading-relaxed max-w-2xl mx-auto">
+            <p className="text-xs sm:text-base text-medical-muted leading-relaxed max-w-2xl mx-auto">
               Pilih dokter spesialis dan jam periksa yang cocok dari rumah. Dapatkan nomor antrean seketika dan jadwal Anda dijamin pasti dan tidak akan bersamaan dengan pasien lain.
             </p>
 
             {/* 3 Simple Value Pillars for Patients */}
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3 text-xs">
+            <div className="pt-1 sm:pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[11px] sm:text-xs">
               <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 Nomor Antrean Langsung Jadi
