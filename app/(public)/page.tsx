@@ -38,18 +38,18 @@ export default async function HomePage() {
             </p>
 
             {/* 3 Simple Value Pillars for Patients */}
-            <div className="pt-1 sm:pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[11px] sm:text-xs">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                Nomor Antrean Langsung Jadi
+            <div className="pt-1 sm:pt-2 grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-2 sm:gap-3 text-[11px] sm:text-xs max-w-md sm:max-w-none mx-auto">
+              <span className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
+                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                <span>Mendapatkan No. Antrean</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
-                <Clock className="w-4 h-4 text-medical-primary" />
-                Jam Periksa Dijamin Pasti
+              <span className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-medical-primary shrink-0" />
+                <span>Jam Periksa Dijamin Pasti</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
-                <Calendar className="w-4 h-4 text-amber-600" />
-                Bisa Ganti Hari (Maksimal H-1)
+              <span className="col-span-2 justify-self-center inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-medical-border text-medical-text font-semibold shadow-2xs">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                <span>Bisa Ganti Hari (Maksimal H-1)</span>
               </span>
             </div>
           </div>
