@@ -58,3 +58,38 @@ body {
   background: #94a3b8;
 }
 
+/* Print / PDF Styles for Excel-like Table Report */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: 10pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force table headers to repeat on every page */
+  thead {
+    display: table-header-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+  }
+
+  .excel-print-border {
+    border: 1px solid #4b5563 !important;
+  }
+
+  .excel-print-header {
+    background-color: #f3f4f6 !important;
+    color: #111827 !important;
+  }
+}
+
+

@@ -13,6 +13,7 @@ import {
   Printer,
   Search,
   Stethoscope,
+  Table as TableIcon,
   TrendingUp,
   Users,
   XCircle,
@@ -29,6 +30,7 @@ interface ReportPanelProps {
 }
 
 type DatePreset = 'today' | '7d' | 'month' | 'all' | 'custom';
+type LayoutMode = 'dashboard' | 'excel';
 
 function getTodayJakarta(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
@@ -66,6 +68,24 @@ function getStatusLabel(status: string): string {
   return 'Menunggu Konfirmasi';
 }
 
+function formatDisplayDateFull(dateStr: string): string {
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      return d.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    }
+    return dateStr;
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function ReportPanel({
   mode,
   appointments,
@@ -85,6 +105,7 @@ export default function ReportPanel({
   const [doctorFilter, setDoctorFilter] = useState<string>('all');
   const [serviceFilter, setServiceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('dashboard');
 
   const showDoctorDimension = mode === 'admin' || (currentStaff && currentStaff.role !== 'doctor');
 
@@ -301,6 +322,7 @@ export default function ReportPanel({
     }
 
     const headers = [
+      'No.',
       'No. Antrean',
       'Tanggal',
       'Jam Mulai',
@@ -316,7 +338,8 @@ export default function ReportPanel({
       'Tarif Layanan (IDR)',
     ];
 
-    const rows = filteredAppointments.map((apt) => [
+    const rows = filteredAppointments.map((apt, idx) => [
+      idx + 1,
       apt.queue_number || '-',
       apt.appointment_date,
       apt.start_time,
@@ -346,7 +369,7 @@ export default function ReportPanel({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success('File laporan CSV berhasil diunduh!');
+    toast.success('File laporan CSV (Excel) berhasil diunduh!');
   };
 
   const handlePrint = () => {
@@ -360,10 +383,375 @@ export default function ReportPanel({
       ? `Laporan Pelayanan & Pemeriksaan — ${currentStaff.full_name}`
       : `Laporan Pelayanan Tenaga Medis — ${currentStaff?.full_name || 'Staf Klinik'}`;
 
+  const printedBy =
+    mode === 'admin'
+      ? 'Admin Utama Faskes'
+      : currentStaff
+      ? `${currentStaff.full_name} (${currentStaff.role === 'doctor' ? 'Dokter Praktik' : 'Tenaga Medis'})`
+      : 'Staf Faskes';
+
+  // Excel Table Component rendered both in Print/PDF and in Screen Excel mode
+  const renderExcelSpreadsheet = () => (
+    <div className="space-y-6 text-black bg-white">
+      {/* Excel Sheet Title & Metadata Header */}
+      <div className="border border-gray-400 bg-white p-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-gray-300">
+          <div>
+            <h1 className="text-lg sm:text-xl font-bold uppercase tracking-wide text-gray-900 font-sans">
+              {clinicName}
+            </h1>
+            <h2 className="text-sm sm:text-base font-extrabold uppercase text-emerald-800 font-sans mt-0.5">
+              LEMBAR LAPORAN DATA KUNJUNGAN & PELAYANAN PASIEN
+            </h2>
+            <p className="text-xs text-gray-600 mt-0.5">
+              Format Rekapitulasi Data Terstruktur (Spreadsheet View)
+            </p>
+          </div>
+          <div className="text-xs text-gray-700 sm:text-right space-y-0.5 font-mono">
+            <div>
+              <span className="font-semibold text-gray-900">Periode:</span> {periodLabel}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Tanggal Cetak:</span>{' '}
+              {formatDisplayDateFull(todayStr)}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-900">Penanggung Jawab:</span> {printedBy}
+            </div>
+          </div>
+        </div>
+
+        {/* Excel Meta Tags Row */}
+        <div className="pt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-700 font-mono">
+          <span>
+            <strong>Filter Status:</strong> {statusFilter === 'all' ? 'Semua' : getStatusLabel(statusFilter)}
+          </span>
+          <span>
+            <strong>Filter Poliklinik:</strong>{' '}
+            {serviceFilter === 'all'
+              ? 'Semua'
+              : availableServices.find((s) => s.id === serviceFilter)?.name || '-'}
+          </span>
+          {showDoctorDimension && (
+            <span>
+              <strong>Filter Dokter:</strong>{' '}
+              {doctorFilter === 'all'
+                ? 'Semua'
+                : availableDoctors.find((d) => d.id === doctorFilter)?.full_name || '-'}
+            </span>
+          )}
+          <span>
+            <strong>Total Baris Data:</strong> {filteredAppointments.length} Kunjungan
+          </span>
+        </div>
+      </div>
+
+      {/* Tabel 1: Ringkasan Metrik KPI (Excel KPI Grid) */}
+      <div>
+        <div className="bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 uppercase tracking-wide border-t border-x border-emerald-900">
+          [1] RINGKASAN METRIK PELAYANAN
+        </div>
+        <table className="w-full text-xs border-collapse border border-gray-400">
+          <thead>
+            <tr className="bg-gray-100 border-b border-gray-400 font-semibold text-gray-800 text-[11px]">
+              <th className="border border-gray-400 px-3 py-2 text-center">Total Kunjungan</th>
+              <th className="border border-gray-400 px-3 py-2 text-center text-emerald-800">Selesai</th>
+              <th className="border border-gray-400 px-3 py-2 text-center text-amber-800">Menunggu</th>
+              <th className="border border-gray-400 px-3 py-2 text-center text-rose-800">Dibatalkan</th>
+              <th className="border border-gray-400 px-3 py-2 text-center">Online</th>
+              <th className="border border-gray-400 px-3 py-2 text-center">Walk-In</th>
+              <th className="border border-gray-400 px-3 py-2 text-center">Tingkat Selesai</th>
+              <th className="border border-gray-400 px-3 py-2 text-right">Total Nilai Layanan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="text-center font-mono font-bold bg-white text-xs">
+              <td className="border border-gray-400 px-3 py-2">{summary.total} Pasien</td>
+              <td className="border border-gray-400 px-3 py-2 text-emerald-700">{summary.completed} Pasien</td>
+              <td className="border border-gray-400 px-3 py-2 text-amber-700">{summary.confirmed} Pasien</td>
+              <td className="border border-gray-400 px-3 py-2 text-rose-700">{summary.cancelled} Pasien</td>
+              <td className="border border-gray-400 px-3 py-2">{summary.onlineCount} Pasien</td>
+              <td className="border border-gray-400 px-3 py-2">{summary.walkInCount} Pasien</td>
+              <td className="border border-gray-400 px-3 py-2">{summary.completionRate}%</td>
+              <td className="border border-gray-400 px-3 py-2 text-right text-emerald-900 text-sm">
+                {formatRupiah(summary.revenue)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Tabel 2: Rekapitulasi per Poliklinik & Layanan */}
+      <div>
+        <div className="bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 uppercase tracking-wide border-t border-x border-emerald-900">
+          [2] REKAPITULASI BERDASARKAN POLIKLINIK & LAYANAN
+        </div>
+        <table className="w-full text-xs border-collapse border border-gray-400">
+          <thead>
+            <tr className="bg-gray-100 border-b border-gray-400 font-bold text-gray-800 text-[11px]">
+              <th className="border border-gray-400 px-2 py-2 text-center w-10">No</th>
+              <th className="border border-gray-400 px-3 py-2 text-left">Nama Poliklinik / Layanan</th>
+              <th className="border border-gray-400 px-3 py-2 text-center w-24">Total</th>
+              <th className="border border-gray-400 px-3 py-2 text-center w-24 text-emerald-800">Selesai</th>
+              <th className="border border-gray-400 px-3 py-2 text-center w-24 text-amber-800">Menunggu</th>
+              <th className="border border-gray-400 px-3 py-2 text-center w-24 text-rose-800">Batal</th>
+              <th className="border border-gray-400 px-3 py-2 text-right w-44">Nilai Layanan (IDR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {serviceBreakdown.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="border border-gray-400 py-4 text-center text-gray-500 italic">
+                  Tidak ada data poliklinik pada periode ini.
+                </td>
+              </tr>
+            ) : (
+              serviceBreakdown.map((row, idx) => (
+                <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50/70' : 'bg-white'}>
+                  <td className="border border-gray-400 px-2 py-1.5 text-center font-mono">{idx + 1}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 font-semibold">{row.name}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono">{row.total}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono text-emerald-700 font-bold">
+                    {row.completed}
+                  </td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono text-amber-700">
+                    {row.confirmed}
+                  </td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono text-rose-700">
+                    {row.cancelled}
+                  </td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-right font-mono font-semibold">
+                    {formatRupiah(row.revenue)}
+                  </td>
+                </tr>
+              ))
+            )}
+            {/* Baris Total (SUM) */}
+            <tr className="bg-gray-200 border-t-2 border-gray-500 font-bold font-mono text-xs">
+              <td colSpan={2} className="border border-gray-400 px-3 py-2 text-left uppercase">
+                TOTAL KESELURUHAN (SUM)
+              </td>
+              <td className="border border-gray-400 px-3 py-2 text-center">{summary.total}</td>
+              <td className="border border-gray-400 px-3 py-2 text-center text-emerald-800">{summary.completed}</td>
+              <td className="border border-gray-400 px-3 py-2 text-center text-amber-800">{summary.confirmed}</td>
+              <td className="border border-gray-400 px-3 py-2 text-center text-rose-800">{summary.cancelled}</td>
+              <td className="border border-gray-400 px-3 py-2 text-right text-emerald-950 font-extrabold">
+                {formatRupiah(summary.revenue)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Tabel 3: Rekapitulasi per Dokter (jika relevan) */}
+      {showDoctorDimension && doctorBreakdown.length > 0 && (
+        <div>
+          <div className="bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 uppercase tracking-wide border-t border-x border-emerald-900">
+            [3] REKAPITULASI BERDASARKAN DOKTER / TENAGA MEDIS
+          </div>
+          <table className="w-full text-xs border-collapse border border-gray-400">
+            <thead>
+              <tr className="bg-gray-100 border-b border-gray-400 font-bold text-gray-800 text-[11px]">
+                <th className="border border-gray-400 px-2 py-2 text-center w-10">No</th>
+                <th className="border border-gray-400 px-3 py-2 text-left">Nama Dokter / Tenaga Medis</th>
+                <th className="border border-gray-400 px-3 py-2 text-left w-48">Spesialisasi</th>
+                <th className="border border-gray-400 px-3 py-2 text-center w-24">Total</th>
+                <th className="border border-gray-400 px-3 py-2 text-center w-24 text-emerald-800">Selesai</th>
+                <th className="border border-gray-400 px-3 py-2 text-center w-24 text-amber-800">Menunggu</th>
+                <th className="border border-gray-400 px-3 py-2 text-center w-24 text-rose-800">Batal</th>
+                <th className="border border-gray-400 px-3 py-2 text-right w-44">Nilai Layanan (IDR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {doctorBreakdown.map((row, idx) => (
+                <tr key={idx} className={idx % 2 === 1 ? 'bg-gray-50/70' : 'bg-white'}>
+                  <td className="border border-gray-400 px-2 py-1.5 text-center font-mono">{idx + 1}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 font-semibold">{row.name}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-gray-700">{row.specialization}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono">{row.total}</td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono text-emerald-700 font-bold">
+                    {row.completed}
+                  </td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono text-amber-700">
+                    {row.confirmed}
+                  </td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-center font-mono text-rose-700">
+                    {row.cancelled}
+                  </td>
+                  <td className="border border-gray-400 px-3 py-1.5 text-right font-mono font-semibold">
+                    {formatRupiah(row.revenue)}
+                  </td>
+                </tr>
+              ))}
+              {/* Baris Total (SUM) */}
+              <tr className="bg-gray-200 border-t-2 border-gray-500 font-bold font-mono text-xs">
+                <td colSpan={3} className="border border-gray-400 px-3 py-2 text-left uppercase">
+                  TOTAL KESELURUHAN (SUM)
+                </td>
+                <td className="border border-gray-400 px-3 py-2 text-center">{summary.total}</td>
+                <td className="border border-gray-400 px-3 py-2 text-center text-emerald-800">{summary.completed}</td>
+                <td className="border border-gray-400 px-3 py-2 text-center text-amber-800">{summary.confirmed}</td>
+                <td className="border border-gray-400 px-3 py-2 text-center text-rose-800">{summary.cancelled}</td>
+                <td className="border border-gray-400 px-3 py-2 text-right text-emerald-950 font-extrabold">
+                  {formatRupiah(summary.revenue)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Tabel 4: Lembar Rincian Data Kunjungan Pasien (Data Sheet Table) */}
+      <div>
+        <div className="bg-emerald-800 text-white font-bold text-xs px-3 py-1.5 uppercase tracking-wide border-t border-x border-emerald-900 flex items-center justify-between">
+          <span>[{showDoctorDimension ? '4' : '3'}] LEMBAR DATA RINCIAN KUNJUNGAN PASIEN</span>
+          <span className="text-[10px] font-mono font-normal">
+            Diurutkan dari tanggal kunjungan terbaru
+          </span>
+        </div>
+        <table className="w-full text-xs border-collapse border border-gray-400">
+          <thead>
+            <tr className="bg-gray-100 border-b border-gray-400 font-bold text-gray-800 text-[11px]">
+              <th className="border border-gray-400 px-2 py-2 text-center w-8">No</th>
+              <th className="border border-gray-400 px-2 py-2 text-center w-16">Antrean</th>
+              <th className="border border-gray-400 px-2.5 py-2 text-center w-24">Tanggal</th>
+              <th className="border border-gray-400 px-2 py-2 text-center w-24">Jam</th>
+              <th className="border border-gray-400 px-3 py-2 text-left">Nama Pasien</th>
+              <th className="border border-gray-400 px-2.5 py-2 text-left w-28">No. WhatsApp</th>
+              <th className="border border-gray-400 px-3 py-2 text-left">Poliklinik</th>
+              {showDoctorDimension && (
+                <th className="border border-gray-400 px-3 py-2 text-left">Dokter Bertugas</th>
+              )}
+              <th className="border border-gray-400 px-2 py-2 text-center w-16">Tipe</th>
+              <th className="border border-gray-400 px-2 py-2 text-center w-20">Status</th>
+              <th className="border border-gray-400 px-3 py-2 text-left">Catatan Medis / Diagnosis / Keluhan</th>
+              <th className="border border-gray-400 px-3 py-2 text-right w-28">Tarif (IDR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredAppointments.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={showDoctorDimension ? 12 : 11}
+                  className="border border-gray-400 py-8 text-center text-gray-500 italic"
+                >
+                  Tidak ada data kunjungan yang sesuai dengan kriteria filter saat ini.
+                </td>
+              </tr>
+            ) : (
+              filteredAppointments.map((apt, idx) => {
+                const srvName =
+                  apt.service?.name ||
+                  availableServices.find((s) => s.id === apt.service_id)?.name ||
+                  '-';
+                const docName =
+                  apt.staff?.full_name ||
+                  availableDoctors.find((d) => d.id === apt.staff_id)?.full_name ||
+                  '-';
+                const price = apt.status === 'completed' ? getServicePrice(apt) : 0;
+
+                return (
+                  <tr key={apt.id} className={idx % 2 === 1 ? 'bg-gray-50/70' : 'bg-white'}>
+                    <td className="border border-gray-400 px-2 py-1.5 text-center font-mono">{idx + 1}</td>
+                    <td className="border border-gray-400 px-2 py-1.5 text-center font-mono font-bold text-gray-900">
+                      {apt.queue_number || '-'}
+                    </td>
+                    <td className="border border-gray-400 px-2.5 py-1.5 text-center font-mono whitespace-nowrap">
+                      {apt.appointment_date}
+                    </td>
+                    <td className="border border-gray-400 px-2 py-1.5 text-center font-mono whitespace-nowrap text-[11px]">
+                      {apt.start_time} - {apt.end_time}
+                    </td>
+                    <td className="border border-gray-400 px-3 py-1.5 font-semibold text-gray-900">
+                      {apt.patient_name}
+                    </td>
+                    <td className="border border-gray-400 px-2.5 py-1.5 font-mono text-[11px] text-gray-700">
+                      {apt.patient_whatsapp || '-'}
+                    </td>
+                    <td className="border border-gray-400 px-3 py-1.5">{srvName}</td>
+                    {showDoctorDimension && (
+                      <td className="border border-gray-400 px-3 py-1.5">{docName}</td>
+                    )}
+                    <td className="border border-gray-400 px-2 py-1.5 text-center font-medium text-[11px]">
+                      {apt.is_walk_in ? 'Walk-In' : 'Online'}
+                    </td>
+                    <td className="border border-gray-400 px-2 py-1.5 text-center font-semibold text-[11px]">
+                      <span
+                        className={`inline-block px-1.5 py-0.5 rounded ${
+                          apt.status === 'completed'
+                            ? 'bg-emerald-100 text-emerald-900'
+                            : apt.status === 'confirmed'
+                            ? 'bg-amber-100 text-amber-900'
+                            : 'bg-rose-100 text-rose-900'
+                        }`}
+                      >
+                        {getStatusLabel(apt.status)}
+                      </span>
+                    </td>
+                    <td className="border border-gray-400 px-3 py-1.5 text-[11px]">
+                      {apt.medical_notes ? (
+                        <div className="text-gray-900 whitespace-pre-wrap font-sans">
+                          {apt.medical_notes}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 italic">
+                          Keluhan: {apt.initial_complaint || '-'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="border border-gray-400 px-3 py-1.5 text-right font-mono font-semibold">
+                      {price > 0 ? formatRupiah(price) : '-'}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+            {/* Baris Total (SUM) */}
+            <tr className="bg-gray-200 border-t-2 border-gray-500 font-bold font-mono text-xs">
+              <td
+                colSpan={showDoctorDimension ? 11 : 10}
+                className="border border-gray-400 px-3 py-2 text-left uppercase"
+              >
+                TOTAL KESELURUHAN DATA KUNJUNGAN PASIEN ({filteredAppointments.length} PASIEN)
+              </td>
+              <td className="border border-gray-400 px-3 py-2 text-right text-emerald-950 font-extrabold text-sm whitespace-nowrap">
+                {formatRupiah(summary.revenue)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Kolom Tanda Tangan / Pengesahan Dokumen Cetak */}
+      <div className="pt-6 border-t border-gray-400 grid grid-cols-2 gap-8 text-xs font-sans">
+        <div>
+          <p className="font-semibold text-gray-800">Catatan Administratif:</p>
+          <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+            Dokumen laporan ini diterbitkan secara sah melalui modul pelaporan digital sistem informasi
+            manajemen pelayanan {clinicName}. Data disinkronkan secara *real-time* dari riwayat reservasi
+            dan catatan medis dokter.
+          </p>
+        </div>
+        <div className="text-right pr-6 space-y-12">
+          <div>
+            <p className="text-gray-700">
+              Jakarta, {formatDisplayDateFull(todayStr)}
+            </p>
+            <p className="font-bold text-gray-900 mt-0.5">Penanggung Jawab Laporan,</p>
+          </div>
+          <div>
+            <p className="font-bold underline text-gray-900">{printedBy}</p>
+            <p className="text-[11px] text-gray-600 font-mono">TempoCare Health System</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header Laporan & Aksi Ekspor */}
-      <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-medical-subtle text-medical-primary flex items-center justify-center shrink-0">
             <BarChart3 className="w-5 h-5" />
@@ -376,18 +764,46 @@ export default function ReportPanel({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 print:hidden">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Switcher Tampilan: Dashboard Modern vs Spreadsheet Excel */}
+          <div className="bg-gray-100 p-1 rounded-xl flex items-center gap-1 border border-gray-200">
+            <button
+              type="button"
+              onClick={() => setLayoutMode('dashboard')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                layoutMode === 'dashboard'
+                  ? 'bg-white text-medical-primary shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" /> Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayoutMode('excel')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                layoutMode === 'excel'
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <TableIcon className="w-3.5 h-3.5" /> Tabel Excel
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={handleExportCsv}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            title="Download CSV yang kompatibel langsung dengan Microsoft Excel & Google Sheets"
           >
             <Download className="w-3.5 h-3.5" /> Export CSV (Excel)
           </button>
           <button
             type="button"
             onClick={handlePrint}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            title="Cetak langsung atau simpan sebagai PDF dalam format Tabel Excel Spreadsheet"
           >
             <Printer className="w-3.5 h-3.5" /> Cetak / Simpan PDF
           </button>
@@ -506,305 +922,322 @@ export default function ReportPanel({
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-medical-muted block">Total Kunjungan</span>
-              <span className="text-2xl font-extrabold text-medical-text mt-1 block">
-                {summary.total} Pasien
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-medical-subtle text-medical-primary flex items-center justify-center">
-              <Users className="w-5 h-5" />
-            </div>
+      {/* TAMPILAN DI LAYAR (SCREEN VIEW) */}
+      <div className="print:hidden">
+        {layoutMode === 'excel' ? (
+          /* Mode Lembar Spreadsheet Excel di Layar */
+          <div className="bg-white p-6 rounded-2xl border border-medical-border shadow-soft overflow-x-auto">
+            {renderExcelSpreadsheet()}
           </div>
-          <span className="text-[11px] text-medical-muted mt-2 block">
-            Online: <strong>{summary.onlineCount}</strong> • Walk-In:{' '}
-            <strong>{summary.walkInCount}</strong>
-          </span>
-        </div>
+        ) : (
+          /* Mode Dashboard Interaktif */
+          <div className="space-y-6">
+            {/* KPI Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-medical-muted block">Total Kunjungan</span>
+                    <span className="text-2xl font-extrabold text-medical-text mt-1 block">
+                      {summary.total} Pasien
+                    </span>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-medical-subtle text-medical-primary flex items-center justify-center">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+                <span className="text-[11px] text-medical-muted mt-2 block">
+                  Online: <strong>{summary.onlineCount}</strong> • Walk-In:{' '}
+                  <strong>{summary.walkInCount}</strong>
+                </span>
+              </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-medical-muted block">Selesai Ditangani</span>
-              <span className="text-2xl font-extrabold text-emerald-600 mt-1 block">
-                {summary.completed} Pasien
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-          <span className="text-[11px] text-emerald-700 mt-2 block font-medium">
-            Tingkat penyelesaian: {summary.completionRate}%
-          </span>
-        </div>
+              <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-medical-muted block">Selesai Ditangani</span>
+                    <span className="text-2xl font-extrabold text-emerald-600 mt-1 block">
+                      {summary.completed} Pasien
+                    </span>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                </div>
+                <span className="text-[11px] text-emerald-700 mt-2 block font-medium">
+                  Tingkat penyelesaian: {summary.completionRate}%
+                </span>
+              </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-medical-muted block">
-                Menunggu & Dibatalkan
-              </span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl font-extrabold text-amber-600">{summary.confirmed}</span>
-                <span className="text-xs text-medical-muted">/</span>
-                <span className="text-lg font-bold text-rose-600">{summary.cancelled} Batal</span>
+              <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-medical-muted block">
+                      Menunggu & Dibatalkan
+                    </span>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-extrabold text-amber-600">{summary.confirmed}</span>
+                      <span className="text-xs text-medical-muted">/</span>
+                      <span className="text-lg font-bold text-rose-600">{summary.cancelled} Batal</span>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    {summary.cancelled > summary.confirmed ? (
+                      <XCircle className="w-5 h-5 text-rose-500" />
+                    ) : (
+                      <Clock className="w-5 h-5" />
+                    )}
+                  </div>
+                </div>
+                <span className="text-[11px] text-medical-muted mt-2 block">
+                  Antrean aktif vs pembatalan
+                </span>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-medical-muted block">
+                      Estimasi Nilai Layanan
+                    </span>
+                    <span className="text-xl font-extrabold text-medical-primary mt-1 block">
+                      {formatRupiah(summary.revenue)}
+                    </span>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                </div>
+                <span className="text-[11px] text-medical-muted mt-2 block">
+                  Berdasarkan layanan berstatus Selesai
+                </span>
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              {summary.cancelled > summary.confirmed ? (
-                <XCircle className="w-5 h-5 text-rose-500" />
-              ) : (
-                <Clock className="w-5 h-5" />
+
+            {/* Breakdown Tables: Poliklinik & Dokter */}
+            <div
+              className={`grid grid-cols-1 ${
+                showDoctorDimension ? 'lg:grid-cols-2' : ''
+              } gap-6`}
+            >
+              {/* Rekap per Poliklinik */}
+              <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-medical-border bg-gray-50/70">
+                  <h3 className="text-xs font-bold text-medical-text uppercase tracking-wider">
+                    Rekapitulasi per Poliklinik & Layanan
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-medical-border text-[11px] text-medical-muted uppercase bg-gray-50">
+                        <th className="py-2.5 px-4">Poliklinik</th>
+                        <th className="py-2.5 px-3 text-center">Total</th>
+                        <th className="py-2.5 px-3 text-center">Selesai</th>
+                        <th className="py-2.5 px-3 text-center">Menunggu</th>
+                        <th className="py-2.5 px-3 text-center">Batal</th>
+                        <th className="py-2.5 px-4 text-right">Nilai Layanan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-medical-border/50">
+                      {serviceBreakdown.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-6 text-center text-medical-muted">
+                            Belum ada data pada periode ini.
+                          </td>
+                        </tr>
+                      ) : (
+                        serviceBreakdown.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/50">
+                            <td className="py-2.5 px-4 font-bold text-medical-text">{row.name}</td>
+                            <td className="py-2.5 px-3 text-center font-semibold">{row.total}</td>
+                            <td className="py-2.5 px-3 text-center text-emerald-700 font-semibold">
+                              {row.completed}
+                            </td>
+                            <td className="py-2.5 px-3 text-center text-amber-700">{row.confirmed}</td>
+                            <td className="py-2.5 px-3 text-center text-rose-600">{row.cancelled}</td>
+                            <td className="py-2.5 px-4 text-right font-mono font-semibold text-medical-primary">
+                              {formatRupiah(row.revenue)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Rekap per Dokter (Admin & Non-Dokter) */}
+              {showDoctorDimension && (
+                <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-medical-border bg-gray-50/70">
+                    <h3 className="text-xs font-bold text-medical-text uppercase tracking-wider">
+                      Rekapitulasi per Dokter / Tenaga Medis
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-medical-border text-[11px] text-medical-muted uppercase bg-gray-50">
+                          <th className="py-2.5 px-4">Dokter</th>
+                          <th className="py-2.5 px-3 text-center">Total</th>
+                          <th className="py-2.5 px-3 text-center">Selesai</th>
+                          <th className="py-2.5 px-3 text-center">Menunggu</th>
+                          <th className="py-2.5 px-3 text-center">Batal</th>
+                          <th className="py-2.5 px-4 text-right">Nilai Layanan</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-medical-border/50">
+                        {doctorBreakdown.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-6 text-center text-medical-muted">
+                              Belum ada data pada periode ini.
+                            </td>
+                          </tr>
+                        ) : (
+                          doctorBreakdown.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50/50">
+                              <td className="py-2.5 px-4">
+                                <span className="font-bold text-medical-text block">{row.name}</span>
+                                <span className="text-[10px] text-medical-muted">{row.specialization}</span>
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-semibold">{row.total}</td>
+                              <td className="py-2.5 px-3 text-center text-emerald-700 font-semibold">
+                                {row.completed}
+                              </td>
+                              <td className="py-2.5 px-3 text-center text-amber-700">{row.confirmed}</td>
+                              <td className="py-2.5 px-3 text-center text-rose-600">{row.cancelled}</td>
+                              <td className="py-2.5 px-4 text-right font-mono font-semibold text-medical-primary">
+                                {formatRupiah(row.revenue)}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-          <span className="text-[11px] text-medical-muted mt-2 block">
-            Antrean aktif vs pembatalan
-          </span>
-        </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-medical-border shadow-soft">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-medical-muted block">
-                Estimasi Nilai Layanan
-              </span>
-              <span className="text-xl font-extrabold text-medical-primary mt-1 block">
-                {formatRupiah(summary.revenue)}
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <span className="text-[11px] text-medical-muted mt-2 block">
-            Berdasarkan layanan berstatus Selesai
-          </span>
-        </div>
-      </div>
+            {/* Tabel Detail Rincian Laporan */}
+            <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-medical-border flex items-center justify-between">
+                <h3 className="text-sm font-bold text-medical-text">
+                  Rincian Data Laporan ({filteredAppointments.length} Kunjungan)
+                </h3>
+                <span className="text-[11px] text-medical-muted">
+                  Diurutkan dari tanggal terbaru
+                </span>
+              </div>
 
-      {/* Breakdown Tables: Poliklinik & Dokter */}
-      <div
-        className={`grid grid-cols-1 ${
-          showDoctorDimension ? 'lg:grid-cols-2' : ''
-        } gap-6`}
-      >
-        {/* Rekap per Poliklinik */}
-        <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-medical-border bg-gray-50/70">
-            <h3 className="text-xs font-bold text-medical-text uppercase tracking-wider">
-              Rekapitulasi per Poliklinik & Layanan
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-medical-border text-[11px] text-medical-muted uppercase">
-                  <th className="py-2.5 px-4">Poliklinik</th>
-                  <th className="py-2.5 px-3 text-center">Total</th>
-                  <th className="py-2.5 px-3 text-center">Selesai</th>
-                  <th className="py-2.5 px-3 text-center">Menunggu</th>
-                  <th className="py-2.5 px-3 text-center">Batal</th>
-                  <th className="py-2.5 px-4 text-right">Nilai Layanan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-medical-border/50">
-                {serviceBreakdown.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-6 text-center text-medical-muted">
-                      Belum ada data pada periode ini.
-                    </td>
-                  </tr>
-                ) : (
-                  serviceBreakdown.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="py-2.5 px-4 font-bold text-medical-text">{row.name}</td>
-                      <td className="py-2.5 px-3 text-center font-semibold">{row.total}</td>
-                      <td className="py-2.5 px-3 text-center text-emerald-700 font-semibold">
-                        {row.completed}
-                      </td>
-                      <td className="py-2.5 px-3 text-center text-amber-700">{row.confirmed}</td>
-                      <td className="py-2.5 px-3 text-center text-rose-600">{row.cancelled}</td>
-                      <td className="py-2.5 px-4 text-right font-mono font-semibold text-medical-primary">
-                        {formatRupiah(row.revenue)}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-medical-border text-[11px] font-bold text-medical-muted uppercase tracking-wider">
+                      <th className="py-3 px-4">Antrean</th>
+                      <th className="py-3 px-4">Tanggal & Jam</th>
+                      <th className="py-3 px-4">Pasien</th>
+                      <th className="py-3 px-4">Poliklinik</th>
+                      {showDoctorDimension && <th className="py-3 px-4">Dokter</th>}
+                      <th className="py-3 px-4">Catatan Medis / Keluhan</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Tarif</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Rekap per Dokter (Admin & Non-Dokter) */}
-        {showDoctorDimension && (
-          <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-medical-border bg-gray-50/70">
-              <h3 className="text-xs font-bold text-medical-text uppercase tracking-wider">
-                Rekapitulasi per Dokter / Tenaga Medis
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-medical-border text-[11px] text-medical-muted uppercase">
-                    <th className="py-2.5 px-4">Dokter</th>
-                    <th className="py-2.5 px-3 text-center">Total</th>
-                    <th className="py-2.5 px-3 text-center">Selesai</th>
-                    <th className="py-2.5 px-3 text-center">Menunggu</th>
-                    <th className="py-2.5 px-3 text-center">Batal</th>
-                    <th className="py-2.5 px-4 text-right">Nilai Layanan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-medical-border/50">
-                  {doctorBreakdown.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-6 text-center text-medical-muted">
-                        Belum ada data pada periode ini.
-                      </td>
-                    </tr>
-                  ) : (
-                    doctorBreakdown.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="py-2.5 px-4">
-                          <span className="font-bold text-medical-text block">{row.name}</span>
-                          <span className="text-[10px] text-medical-muted">{row.specialization}</span>
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-semibold">{row.total}</td>
-                        <td className="py-2.5 px-3 text-center text-emerald-700 font-semibold">
-                          {row.completed}
-                        </td>
-                        <td className="py-2.5 px-3 text-center text-amber-700">{row.confirmed}</td>
-                        <td className="py-2.5 px-3 text-center text-rose-600">{row.cancelled}</td>
-                        <td className="py-2.5 px-4 text-right font-mono font-semibold text-medical-primary">
-                          {formatRupiah(row.revenue)}
+                  </thead>
+                  <tbody className="divide-y divide-medical-border/50">
+                    {filteredAppointments.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={showDoctorDimension ? 8 : 7}
+                          className="py-12 text-center text-medical-muted"
+                        >
+                          Tidak ada data kunjungan yang sesuai dengan filter laporan saat ini.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      filteredAppointments.map((apt) => {
+                        const srvName =
+                          apt.service?.name ||
+                          availableServices.find((s) => s.id === apt.service_id)?.name ||
+                          '-';
+                        const docName =
+                          apt.staff?.full_name ||
+                          availableDoctors.find((d) => d.id === apt.staff_id)?.full_name ||
+                          '-';
+                        const price = apt.status === 'completed' ? getServicePrice(apt) : 0;
+
+                        return (
+                          <tr key={apt.id} className="hover:bg-gray-50/70 transition-colors">
+                            <td className="py-3 px-4">
+                              <span className="font-mono font-bold text-medical-primary block">
+                                {apt.queue_number || '-'}
+                              </span>
+                              <span className="text-[10px] text-medical-muted">
+                                {apt.is_walk_in ? 'Walk-In' : 'Online'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              <span className="font-semibold text-medical-text block">
+                                {apt.appointment_date}
+                              </span>
+                              <span className="text-[11px] text-medical-muted">
+                                {apt.start_time} - {apt.end_time}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-bold text-medical-text block">{apt.patient_name}</span>
+                              <span className="text-[11px] text-medical-muted font-mono">
+                                {apt.patient_whatsapp || '-'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-medium text-medical-text">{srvName}</td>
+                            {showDoctorDimension && (
+                              <td className="py-3 px-4 font-medium text-medical-text">{docName}</td>
+                            )}
+                            <td className="py-3 px-4 max-w-[240px]">
+                              {apt.medical_notes ? (
+                                <p className="text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-[11px] line-clamp-2">
+                                  {apt.medical_notes}
+                                </p>
+                              ) : (
+                                <span className="text-[11px] text-medical-muted italic">
+                                  Keluhan: {apt.initial_complaint || '-'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${
+                                  apt.status === 'completed'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : apt.status === 'confirmed'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}
+                              >
+                                {getStatusLabel(apt.status)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-semibold text-medical-text whitespace-nowrap">
+                              {price > 0 ? formatRupiah(price) : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Tabel Detail Rincian Laporan */}
-      <div className="bg-white rounded-2xl border border-medical-border shadow-soft overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-medical-border flex items-center justify-between">
-          <h3 className="text-sm font-bold text-medical-text">
-            Rincian Data Laporan ({filteredAppointments.length} Kunjungan)
-          </h3>
-          <span className="text-[11px] text-medical-muted">
-            Diurutkan dari tanggal terbaru
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-gray-50 border-b border-medical-border text-[11px] font-bold text-medical-muted uppercase tracking-wider">
-                <th className="py-3 px-4">Antrean</th>
-                <th className="py-3 px-4">Tanggal & Jam</th>
-                <th className="py-3 px-4">Pasien</th>
-                <th className="py-3 px-4">Poliklinik</th>
-                {showDoctorDimension && <th className="py-3 px-4">Dokter</th>}
-                <th className="py-3 px-4">Catatan Medis / Keluhan</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Tarif</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-medical-border/50">
-              {filteredAppointments.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={showDoctorDimension ? 8 : 7}
-                    className="py-12 text-center text-medical-muted"
-                  >
-                    Tidak ada data kunjungan yang sesuai dengan filter laporan saat ini.
-                  </td>
-                </tr>
-              ) : (
-                filteredAppointments.map((apt) => {
-                  const srvName =
-                    apt.service?.name ||
-                    availableServices.find((s) => s.id === apt.service_id)?.name ||
-                    '-';
-                  const docName =
-                    apt.staff?.full_name ||
-                    availableDoctors.find((d) => d.id === apt.staff_id)?.full_name ||
-                    '-';
-                  const price = apt.status === 'completed' ? getServicePrice(apt) : 0;
-
-                  return (
-                    <tr key={apt.id} className="hover:bg-gray-50/70 transition-colors">
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-bold text-medical-primary block">
-                          {apt.queue_number || '-'}
-                        </span>
-                        <span className="text-[10px] text-medical-muted">
-                          {apt.is_walk_in ? 'Walk-In' : 'Online'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span className="font-semibold text-medical-text block">
-                          {apt.appointment_date}
-                        </span>
-                        <span className="text-[11px] text-medical-muted">
-                          {apt.start_time} - {apt.end_time}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-bold text-medical-text block">{apt.patient_name}</span>
-                        <span className="text-[11px] text-medical-muted font-mono">
-                          {apt.patient_whatsapp || '-'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-medium text-medical-text">{srvName}</td>
-                      {showDoctorDimension && (
-                        <td className="py-3 px-4 font-medium text-medical-text">{docName}</td>
-                      )}
-                      <td className="py-3 px-4 max-w-[240px]">
-                        {apt.medical_notes ? (
-                          <p className="text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 text-[11px] line-clamp-2">
-                            {apt.medical_notes}
-                          </p>
-                        ) : (
-                          <span className="text-[11px] text-medical-muted italic">
-                            Keluhan: {apt.initial_complaint || '-'}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${
-                            apt.status === 'completed'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : apt.status === 'confirmed'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-rose-100 text-rose-800'
-                          }`}
-                        >
-                          {getStatusLabel(apt.status)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-semibold text-medical-text whitespace-nowrap">
-                        {price > 0 ? formatRupiah(price) : '-'}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* TAMPILAN KHUSUS PRINT / PDF (SELALU MENGGUNAKAN FORMAT TABEL EXCEL RESMI) */}
+      <div className="hidden print:block">
+        {renderExcelSpreadsheet()}
       </div>
     </div>
   );
 }
-
