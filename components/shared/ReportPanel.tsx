@@ -529,7 +529,7 @@ export default function ReportPanel({
             {/* Baris Total (SUM) */}
             <tr className="bg-gray-200 border-t-2 border-gray-500 font-bold font-mono text-xs">
               <td colSpan={2} className="border border-gray-400 px-3 py-2 text-left uppercase">
-                TOTAL KESELURUHAN (SUM)
+                TOTAL KESELURUHAN
               </td>
               <td className="border border-gray-400 px-3 py-2 text-center">{summary.total}</td>
               <td className="border border-gray-400 px-3 py-2 text-center text-emerald-800">{summary.completed}</td>
@@ -586,7 +586,7 @@ export default function ReportPanel({
               {/* Baris Total (SUM) */}
               <tr className="bg-gray-200 border-t-2 border-gray-500 font-bold font-mono text-xs">
                 <td colSpan={3} className="border border-gray-400 px-3 py-2 text-left uppercase">
-                  TOTAL KESELURUHAN (SUM)
+                  TOTAL KESELURUHAN
                 </td>
                 <td className="border border-gray-400 px-3 py-2 text-center">{summary.total}</td>
                 <td className="border border-gray-400 px-3 py-2 text-center text-emerald-800">{summary.completed}</td>
