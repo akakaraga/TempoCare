@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Appointment, Service, Staff } from '@/lib/types';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
 import {
   BarChart3,
   Calendar,
@@ -326,19 +326,149 @@ export default function ReportPanel({
       const wb = XLSX.utils.book_new();
 
       // ==========================================
+      // PALET GAYA & BORDER EXCEL (xlsx-js-style)
+      // ==========================================
+      const borderThin = {
+        top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      };
+
+      const borderHeader = {
+        top: { style: 'thin', color: { rgb: '1E293B' } },
+        bottom: { style: 'medium', color: { rgb: '1E293B' } },
+        left: { style: 'thin', color: { rgb: '334155' } },
+        right: { style: 'thin', color: { rgb: '334155' } },
+      };
+
+      const borderTotal = {
+        top: { style: 'thin', color: { rgb: '1E293B' } },
+        bottom: { style: 'double', color: { rgb: '1E293B' } },
+        left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+        right: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      };
+
+      const titleCell = (
+        val: string,
+        sz = 11,
+        bold = false,
+        italic = false,
+        color = '0F172A'
+      ) => ({
+        v: val,
+        t: 's' as const,
+        s: {
+          font: { name: 'Calibri', sz, bold, italic, color: { rgb: color } },
+          alignment: { vertical: 'center' },
+        },
+      });
+
+      const makeHeaderCell = (val: string) => ({
+        v: val,
+        t: 's' as const,
+        s: {
+          font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+          fill: { fgColor: { rgb: '2E5B53' } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: borderHeader,
+        },
+      });
+
+      const makeDataCell = (
+        val: string | number,
+        align: 'left' | 'center' | 'right' = 'left',
+        isEven = false,
+        numFmt?: string
+      ) => {
+        const isNum = typeof val === 'number';
+        return {
+          v: val,
+          t: isNum ? ('n' as const) : ('s' as const),
+          s: {
+            font: { name: 'Calibri', sz: 9, color: { rgb: '1E293B' } },
+            fill: isEven
+              ? { fgColor: { rgb: 'F8FAFC' } }
+              : { fgColor: { rgb: 'FFFFFF' } },
+            alignment: { horizontal: align, vertical: 'center' },
+            border: borderThin,
+            numFmt: numFmt || (isNum ? '#,##0' : undefined),
+          },
+        };
+      };
+
+      const makeQueueCell = (val: string, isEven = false) => ({
+        v: val,
+        t: 's' as const,
+        s: {
+          font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0F766E' } },
+          fill: isEven
+            ? { fgColor: { rgb: 'F0FDFA' } }
+            : { fgColor: { rgb: 'F8FAFC' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: borderThin,
+        },
+      });
+
+      const makeStatusCell = (status: Appointment['status']) => {
+        let fgColor = 'F1F5F9';
+        let fontColor = '475569';
+        if (status === 'completed') {
+          fgColor = 'DCFCE7'; // soft green
+          fontColor = '166534';
+        } else if (status === 'confirmed') {
+          fgColor = 'FEF3C7'; // soft amber
+          fontColor = '92400E';
+        } else if (status === 'cancelled') {
+          fgColor = 'FFE4E6'; // soft rose
+          fontColor = '9F1239';
+        }
+
+        return {
+          v: getStatusLabel(status),
+          t: 's' as const,
+          s: {
+            font: { name: 'Calibri', sz: 9, bold: true, color: { rgb: fontColor } },
+            fill: { fgColor: { rgb: fgColor } },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            border: borderThin,
+          },
+        };
+      };
+
+      const makeTotalCell = (
+        val: string | number,
+        align: 'left' | 'center' | 'right' = 'right',
+        numFmt?: string
+      ) => {
+        const isNum = typeof val === 'number';
+        return {
+          v: val,
+          t: isNum ? ('n' as const) : ('s' as const),
+          s: {
+            font: { name: 'Calibri', sz: 10, bold: true, color: { rgb: '0F172A' } },
+            fill: { fgColor: { rgb: 'E2E8F0' } },
+            alignment: { horizontal: align, vertical: 'center' },
+            border: borderTotal,
+            numFmt: numFmt || (isNum ? '#,##0' : undefined),
+          },
+        };
+      };
+
+      // ==========================================
       // SHEET 1: LEMBAR RINCIAN KUNJUNGAN PASIEN
       // ==========================================
-      const sheet1Data: (string | number)[][] = [
-        [clinicName],
-        ['LEMBAR LAPORAN DATA KUNJUNGAN & PELAYANAN PASIEN'],
+      const sheet1Data: any[][] = [
+        [titleCell(clinicName, 14, true, false, '134E4A')],
+        [titleCell('LEMBAR LAPORAN DATA KUNJUNGAN & PELAYANAN PASIEN', 11, true, false, '0F172A')],
         [
-          `Periode: ${periodLabel}`,
+          titleCell(`Periode: ${periodLabel}`, 9, false, true, '64748B'),
           '',
           '',
-          `Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`,
+          titleCell(`Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`, 9, false, true, '64748B'),
           '',
           '',
-          `Penanggung Jawab: ${printedBy}`,
+          titleCell(`Penanggung Jawab: ${printedBy}`, 9, false, true, '64748B'),
         ],
         [],
         [
@@ -356,10 +486,11 @@ export default function ReportPanel({
           'Keluhan Awal',
           'Catatan Medis Dokter',
           'Tarif Layanan (IDR)',
-        ],
+        ].map(makeHeaderCell),
       ];
 
       filteredAppointments.forEach((apt, idx) => {
+        const isEven = idx % 2 === 1;
         const srvName =
           apt.service?.name ||
           availableServices.find((s) => s.id === apt.service_id)?.name ||
@@ -371,44 +502,44 @@ export default function ReportPanel({
         const price = apt.status === 'completed' ? getServicePrice(apt) : 0;
 
         sheet1Data.push([
-          idx + 1,
-          apt.queue_number || '-',
-          apt.appointment_date,
-          apt.start_time,
-          apt.end_time,
-          apt.patient_name,
-          apt.patient_whatsapp || '-',
-          srvName,
-          docName,
-          apt.is_walk_in ? 'Walk-In' : 'Online',
-          getStatusLabel(apt.status),
-          apt.initial_complaint || '-',
-          apt.medical_notes || '-',
-          price,
+          makeDataCell(idx + 1, 'center', isEven),
+          makeQueueCell(apt.queue_number || '-', isEven),
+          makeDataCell(apt.appointment_date, 'center', isEven),
+          makeDataCell(apt.start_time, 'center', isEven),
+          makeDataCell(apt.end_time, 'center', isEven),
+          makeDataCell(apt.patient_name, 'left', isEven),
+          makeDataCell(apt.patient_whatsapp || '-', 'center', isEven),
+          makeDataCell(srvName, 'left', isEven),
+          makeDataCell(docName, 'left', isEven),
+          makeDataCell(apt.is_walk_in ? 'Walk-In' : 'Online', 'center', isEven),
+          makeStatusCell(apt.status),
+          makeDataCell(apt.initial_complaint || '-', 'left', isEven),
+          makeDataCell(apt.medical_notes || '-', 'left', isEven),
+          makeDataCell(price, 'right', isEven, '#,##0'),
         ]);
       });
 
-      // Baris Total (SUM) paling bawah
+      // Baris Total (SUM) dengan border akuntansi ganda
       sheet1Data.push([
-        `TOTAL KESELURUHAN (${filteredAppointments.length} PASIEN)`,
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        '',
-        summary.revenue,
+        makeTotalCell(`TOTAL KESELURUHAN (${filteredAppointments.length} PASIEN)`, 'left'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell('', 'center'),
+        makeTotalCell(summary.revenue, 'right', '#,##0'),
       ]);
 
       const wsMain = XLSX.utils.aoa_to_sheet(sheet1Data);
 
-      // Lebar kolom rapi dan tidak terpotong (auto-fit lebar optimal)
+      // Lebar kolom optimal
       wsMain['!cols'] = [
         { wch: 6 },  // No.
         { wch: 14 }, // No. Antrean
@@ -431,12 +562,12 @@ export default function ReportPanel({
       // ==========================================
       // SHEET 2: REKAPITULASI LAYANAN & DOKTER
       // ==========================================
-      const sheet2Data: (string | number)[][] = [
-        [clinicName],
-        ['REKAPITULASI PELAYANAN FASKES'],
-        [`Periode: ${periodLabel} | Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`],
+      const sheet2Data: any[][] = [
+        [titleCell(clinicName, 14, true, false, '134E4A')],
+        [titleCell('REKAPITULASI PELAYANAN FASKES', 11, true, false, '0F172A')],
+        [titleCell(`Periode: ${periodLabel} | Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`, 9, false, true, '64748B')],
         [],
-        ['[1] REKAPITULASI BERDASARKAN POLIKLINIK & LAYANAN'],
+        [titleCell('[1] REKAPITULASI BERDASARKAN POLIKLINIK & LAYANAN', 11, true, false, '0F766E')],
         [
           'No.',
           'Nama Poliklinik / Layanan',
@@ -445,35 +576,36 @@ export default function ReportPanel({
           'Menunggu',
           'Dibatalkan',
           'Nilai Layanan (IDR)',
-        ],
+        ].map(makeHeaderCell),
       ];
 
       serviceBreakdown.forEach((row, idx) => {
+        const isEven = idx % 2 === 1;
         sheet2Data.push([
-          idx + 1,
-          row.name,
-          row.total,
-          row.completed,
-          row.confirmed,
-          row.cancelled,
-          row.revenue,
+          makeDataCell(idx + 1, 'center', isEven),
+          makeDataCell(row.name, 'left', isEven),
+          makeDataCell(row.total, 'center', isEven),
+          makeDataCell(row.completed, 'center', isEven),
+          makeDataCell(row.confirmed, 'center', isEven),
+          makeDataCell(row.cancelled, 'center', isEven),
+          makeDataCell(row.revenue, 'right', isEven, '#,##0'),
         ]);
       });
 
       sheet2Data.push([
-        'TOTAL POLIKLINIK',
-        '',
-        summary.total,
-        summary.completed,
-        summary.confirmed,
-        summary.cancelled,
-        summary.revenue,
+        makeTotalCell('TOTAL POLIKLINIK', 'left'),
+        makeTotalCell('', 'left'),
+        makeTotalCell(summary.total, 'center'),
+        makeTotalCell(summary.completed, 'center'),
+        makeTotalCell(summary.confirmed, 'center'),
+        makeTotalCell(summary.cancelled, 'center'),
+        makeTotalCell(summary.revenue, 'right', '#,##0'),
       ]);
 
       if (showDoctorDimension && doctorBreakdown.length > 0) {
         sheet2Data.push([]);
         sheet2Data.push([]);
-        sheet2Data.push(['[2] REKAPITULASI BERDASARKAN DOKTER / TENAGA MEDIS']);
+        sheet2Data.push([titleCell('[2] REKAPITULASI BERDASARKAN DOKTER / TENAGA MEDIS', 11, true, false, '0F766E')]);
         sheet2Data.push([
           'No.',
           'Nama Dokter / Tenaga Medis',
@@ -483,30 +615,31 @@ export default function ReportPanel({
           'Menunggu',
           'Dibatalkan',
           'Nilai Layanan (IDR)',
-        ]);
+        ].map(makeHeaderCell));
 
         doctorBreakdown.forEach((row, idx) => {
+          const isEven = idx % 2 === 1;
           sheet2Data.push([
-            idx + 1,
-            row.name,
-            row.specialization,
-            row.total,
-            row.completed,
-            row.confirmed,
-            row.cancelled,
-            row.revenue,
+            makeDataCell(idx + 1, 'center', isEven),
+            makeDataCell(row.name, 'left', isEven),
+            makeDataCell(row.specialization, 'left', isEven),
+            makeDataCell(row.total, 'center', isEven),
+            makeDataCell(row.completed, 'center', isEven),
+            makeDataCell(row.confirmed, 'center', isEven),
+            makeDataCell(row.cancelled, 'center', isEven),
+            makeDataCell(row.revenue, 'right', isEven, '#,##0'),
           ]);
         });
 
         sheet2Data.push([
-          'TOTAL DOKTER',
-          '',
-          '',
-          summary.total,
-          summary.completed,
-          summary.confirmed,
-          summary.cancelled,
-          summary.revenue,
+          makeTotalCell('TOTAL DOKTER', 'left'),
+          makeTotalCell('', 'left'),
+          makeTotalCell('', 'left'),
+          makeTotalCell(summary.total, 'center'),
+          makeTotalCell(summary.completed, 'center'),
+          makeTotalCell(summary.confirmed, 'center'),
+          makeTotalCell(summary.cancelled, 'center'),
+          makeTotalCell(summary.revenue, 'right', '#,##0'),
         ]);
       }
 
@@ -526,12 +659,15 @@ export default function ReportPanel({
       // ==========================================
       // SHEET 3: RINGKASAN METRIK KPI EKSEKUTIF
       // ==========================================
-      const sheet3Data: (string | number)[][] = [
-        [clinicName],
-        ['RINGKASAN METRIK PELAYANAN (KPI)'],
-        [`Periode: ${periodLabel} | Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`],
+      const sheet3Data: any[][] = [
+        [titleCell(clinicName, 14, true, false, '134E4A')],
+        [titleCell('RINGKASAN METRIK PELAYANAN (KPI)', 11, true, false, '0F172A')],
+        [titleCell(`Periode: ${periodLabel} | Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`, 9, false, true, '64748B')],
         [],
-        ['Indikator Metrik Pelayanan', 'Jumlah / Nilai', 'Keterangan'],
+        ['Indikator Metrik Pelayanan', 'Jumlah / Nilai', 'Keterangan'].map(makeHeaderCell),
+      ];
+
+      const kpiMetrics: [string, string | number, string][] = [
         ['Total Kunjungan Pasien', summary.total, 'Jumlah seluruh pasien yang terdata pada periode ini'],
         ['Pasien Selesai Ditangani', summary.completed, 'Pemeriksaan telah tuntas dilaksanakan'],
         ['Pasien Menunggu Giliran / Terjadwal', summary.confirmed, 'Jadwal aktif yang menunggu kehadiran pasien'],
@@ -541,6 +677,16 @@ export default function ReportPanel({
         ['Tingkat Penyelesaian Layanan (%)', `${summary.completionRate}%`, 'Persentase keberhasilan pelayanan selesai'],
         ['Estimasi Akumulasi Nilai Layanan (IDR)', summary.revenue, 'Perhitungan tarif layanan yang berstatus selesai'],
       ];
+
+      kpiMetrics.forEach((m, idx) => {
+        const isEven = idx % 2 === 1;
+        const isRev = idx === kpiMetrics.length - 1;
+        sheet3Data.push([
+          makeDataCell(m[0], 'left', isEven),
+          makeDataCell(m[1], typeof m[1] === 'number' ? 'right' : 'center', isEven, isRev ? '#,##0' : undefined),
+          makeDataCell(m[2], 'left', isEven),
+        ]);
+      });
 
       const wsKPI = XLSX.utils.aoa_to_sheet(sheet3Data);
       wsKPI['!cols'] = [
@@ -553,7 +699,7 @@ export default function ReportPanel({
       // Download file native .xlsx
       const roleTag = mode === 'admin' ? 'admin' : currentStaff?.role || 'staff';
       XLSX.writeFile(wb, `laporan-${roleTag}-${todayStr}.xlsx`);
-      toast.success('File Excel (.xlsx) berhasil diunduh dan tersusun rapi dalam tabel!');
+      toast.success('File Excel berhasil diunduh');
     } catch (err) {
       console.error('[Export Excel Error]', err);
       toast.error('Gagal membuat file Excel. Mencoba alternatif CSV...');
@@ -1043,7 +1189,7 @@ export default function ReportPanel({
             className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
             title="Download file Excel resmi (.xlsx) yang langsung rapi terbagi dalam tabel & sheet"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Download Excel (.xlsx)
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Download Excel
           </button>
           <button
             type="button"
