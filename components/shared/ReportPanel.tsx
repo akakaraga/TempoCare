@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Appointment, Service, Staff } from '@/lib/types';
+import * as XLSX from 'xlsx';
 import {
   BarChart3,
   Calendar,
@@ -315,6 +316,251 @@ export default function ReportPanel({
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [showDoctorDimension, filteredAppointments, availableDoctors, availableServices]);
 
+  const handleExportExcel = () => {
+    if (filteredAppointments.length === 0) {
+      toast.error('Tidak ada data laporan untuk diekspor.');
+      return;
+    }
+
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // ==========================================
+      // SHEET 1: LEMBAR RINCIAN KUNJUNGAN PASIEN
+      // ==========================================
+      const sheet1Data: (string | number)[][] = [
+        [clinicName],
+        ['LEMBAR LAPORAN DATA KUNJUNGAN & PELAYANAN PASIEN'],
+        [
+          `Periode: ${periodLabel}`,
+          '',
+          '',
+          `Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`,
+          '',
+          '',
+          `Penanggung Jawab: ${printedBy}`,
+        ],
+        [],
+        [
+          'No.',
+          'No. Antrean',
+          'Tanggal Kunjungan',
+          'Jam Mulai',
+          'Jam Selesai',
+          'Nama Pasien',
+          'No. WhatsApp',
+          'Poliklinik / Layanan',
+          'Dokter Bertugas',
+          'Tipe Pendaftaran',
+          'Status Kehadiran',
+          'Keluhan Awal',
+          'Catatan Medis Dokter',
+          'Tarif Layanan (IDR)',
+        ],
+      ];
+
+      filteredAppointments.forEach((apt, idx) => {
+        const srvName =
+          apt.service?.name ||
+          availableServices.find((s) => s.id === apt.service_id)?.name ||
+          '-';
+        const docName =
+          apt.staff?.full_name ||
+          availableDoctors.find((d) => d.id === apt.staff_id)?.full_name ||
+          '-';
+        const price = apt.status === 'completed' ? getServicePrice(apt) : 0;
+
+        sheet1Data.push([
+          idx + 1,
+          apt.queue_number || '-',
+          apt.appointment_date,
+          apt.start_time,
+          apt.end_time,
+          apt.patient_name,
+          apt.patient_whatsapp || '-',
+          srvName,
+          docName,
+          apt.is_walk_in ? 'Walk-In' : 'Online',
+          getStatusLabel(apt.status),
+          apt.initial_complaint || '-',
+          apt.medical_notes || '-',
+          price,
+        ]);
+      });
+
+      // Baris Total (SUM) paling bawah
+      sheet1Data.push([
+        `TOTAL KESELURUHAN (${filteredAppointments.length} PASIEN)`,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        summary.revenue,
+      ]);
+
+      const wsMain = XLSX.utils.aoa_to_sheet(sheet1Data);
+
+      // Lebar kolom rapi dan tidak terpotong (auto-fit lebar optimal)
+      wsMain['!cols'] = [
+        { wch: 6 },  // No.
+        { wch: 14 }, // No. Antrean
+        { wch: 18 }, // Tanggal Kunjungan
+        { wch: 12 }, // Jam Mulai
+        { wch: 12 }, // Jam Selesai
+        { wch: 28 }, // Nama Pasien
+        { wch: 18 }, // No. WhatsApp
+        { wch: 22 }, // Poliklinik
+        { wch: 26 }, // Dokter Bertugas
+        { wch: 18 }, // Tipe Pendaftaran
+        { wch: 18 }, // Status Kehadiran
+        { wch: 32 }, // Keluhan Awal
+        { wch: 45 }, // Catatan Medis Dokter
+        { wch: 22 }, // Tarif Layanan (IDR)
+      ];
+
+      XLSX.utils.book_append_sheet(wb, wsMain, 'Rincian Kunjungan');
+
+      // ==========================================
+      // SHEET 2: REKAPITULASI LAYANAN & DOKTER
+      // ==========================================
+      const sheet2Data: (string | number)[][] = [
+        [clinicName],
+        ['REKAPITULASI PELAYANAN FASKES'],
+        [`Periode: ${periodLabel} | Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`],
+        [],
+        ['[1] REKAPITULASI BERDASARKAN POLIKLINIK & LAYANAN'],
+        [
+          'No.',
+          'Nama Poliklinik / Layanan',
+          'Total Kunjungan',
+          'Selesai',
+          'Menunggu',
+          'Dibatalkan',
+          'Nilai Layanan (IDR)',
+        ],
+      ];
+
+      serviceBreakdown.forEach((row, idx) => {
+        sheet2Data.push([
+          idx + 1,
+          row.name,
+          row.total,
+          row.completed,
+          row.confirmed,
+          row.cancelled,
+          row.revenue,
+        ]);
+      });
+
+      sheet2Data.push([
+        'TOTAL POLIKLINIK',
+        '',
+        summary.total,
+        summary.completed,
+        summary.confirmed,
+        summary.cancelled,
+        summary.revenue,
+      ]);
+
+      if (showDoctorDimension && doctorBreakdown.length > 0) {
+        sheet2Data.push([]);
+        sheet2Data.push([]);
+        sheet2Data.push(['[2] REKAPITULASI BERDASARKAN DOKTER / TENAGA MEDIS']);
+        sheet2Data.push([
+          'No.',
+          'Nama Dokter / Tenaga Medis',
+          'Spesialisasi',
+          'Total Pasien',
+          'Selesai',
+          'Menunggu',
+          'Dibatalkan',
+          'Nilai Layanan (IDR)',
+        ]);
+
+        doctorBreakdown.forEach((row, idx) => {
+          sheet2Data.push([
+            idx + 1,
+            row.name,
+            row.specialization,
+            row.total,
+            row.completed,
+            row.confirmed,
+            row.cancelled,
+            row.revenue,
+          ]);
+        });
+
+        sheet2Data.push([
+          'TOTAL DOKTER',
+          '',
+          '',
+          summary.total,
+          summary.completed,
+          summary.confirmed,
+          summary.cancelled,
+          summary.revenue,
+        ]);
+      }
+
+      const wsRekap = XLSX.utils.aoa_to_sheet(sheet2Data);
+      wsRekap['!cols'] = [
+        { wch: 6 },  // No.
+        { wch: 28 }, // Nama
+        { wch: 24 }, // Spesialisasi
+        { wch: 16 }, // Total
+        { wch: 14 }, // Selesai
+        { wch: 14 }, // Menunggu
+        { wch: 14 }, // Dibatalkan
+        { wch: 24 }, // Nilai Layanan (IDR)
+      ];
+      XLSX.utils.book_append_sheet(wb, wsRekap, 'Rekapitulasi Layanan');
+
+      // ==========================================
+      // SHEET 3: RINGKASAN METRIK KPI EKSEKUTIF
+      // ==========================================
+      const sheet3Data: (string | number)[][] = [
+        [clinicName],
+        ['RINGKASAN METRIK PELAYANAN (KPI)'],
+        [`Periode: ${periodLabel} | Tanggal Ekspor: ${formatDisplayDateFull(todayStr)}`],
+        [],
+        ['Indikator Metrik Pelayanan', 'Jumlah / Nilai', 'Keterangan'],
+        ['Total Kunjungan Pasien', summary.total, 'Jumlah seluruh pasien yang terdata pada periode ini'],
+        ['Pasien Selesai Ditangani', summary.completed, 'Pemeriksaan telah tuntas dilaksanakan'],
+        ['Pasien Menunggu Giliran / Terjadwal', summary.confirmed, 'Jadwal aktif yang menunggu kehadiran pasien'],
+        ['Jadwal Kunjungan Dibatalkan', summary.cancelled, 'Kunjungan dibatalkan oleh pasien atau pihak faskes'],
+        ['Pendaftaran Pasien Online', summary.onlineCount, 'Pasien reservasi mandiri via portal website'],
+        ['Pendaftaran Pasien Walk-In', summary.walkInCount, 'Pasien mendaftar langsung di meja resepsionis'],
+        ['Tingkat Penyelesaian Layanan (%)', `${summary.completionRate}%`, 'Persentase keberhasilan pelayanan selesai'],
+        ['Estimasi Akumulasi Nilai Layanan (IDR)', summary.revenue, 'Perhitungan tarif layanan yang berstatus selesai'],
+      ];
+
+      const wsKPI = XLSX.utils.aoa_to_sheet(sheet3Data);
+      wsKPI['!cols'] = [
+        { wch: 40 },
+        { wch: 22 },
+        { wch: 55 },
+      ];
+      XLSX.utils.book_append_sheet(wb, wsKPI, 'Ringkasan KPI');
+
+      // Download file native .xlsx
+      const roleTag = mode === 'admin' ? 'admin' : currentStaff?.role || 'staff';
+      XLSX.writeFile(wb, `laporan-${roleTag}-${todayStr}.xlsx`);
+      toast.success('File Excel (.xlsx) berhasil diunduh dan tersusun rapi dalam tabel!');
+    } catch (err) {
+      console.error('[Export Excel Error]', err);
+      toast.error('Gagal membuat file Excel. Mencoba alternatif CSV...');
+      handleExportCsv();
+    }
+  };
+
   const handleExportCsv = () => {
     if (filteredAppointments.length === 0) {
       toast.error('Tidak ada data laporan untuk diekspor.');
@@ -369,7 +615,7 @@ export default function ReportPanel({
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success('File laporan CSV (Excel) berhasil diunduh!');
+    toast.success('File laporan CSV berhasil diunduh!');
   };
 
   const handlePrint = () => {
@@ -793,11 +1039,11 @@ export default function ReportPanel({
 
           <button
             type="button"
-            onClick={handleExportCsv}
+            onClick={handleExportExcel}
             className="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
-            title="Download CSV yang kompatibel langsung dengan Microsoft Excel & Google Sheets"
+            title="Download file Excel resmi (.xlsx) yang langsung rapi terbagi dalam tabel & sheet"
           >
-            <Download className="w-3.5 h-3.5" /> Export CSV (Excel)
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Download Excel (.xlsx)
           </button>
           <button
             type="button"
