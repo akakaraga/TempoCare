@@ -679,7 +679,6 @@ export default function AdminDashboardView({
                       <th className="py-3 px-4">WhatsApp</th>
                       <th className="py-3 px-4">Dokter Bertugas</th>
                       <th className="py-3 px-4">Layanan</th>
-                      <th className="py-3 px-4">Catatan Dokter / Resep</th>
                       <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Aksi Admin</th>
                     </tr>
@@ -687,7 +686,7 @@ export default function AdminDashboardView({
                   <tbody className="divide-y divide-gray-100">
                     {filteredAppointments.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-medical-muted">
+                        <td colSpan={8} className="py-12 text-center text-medical-muted">
                           Tidak ada data janji temu yang cocok dengan filter.
                         </td>
                       </tr>
@@ -727,33 +726,6 @@ export default function AdminDashboardView({
                           <td className="py-3 px-4 text-medical-muted">
                             {apt.service?.name}
                           </td>
-                          <td className="py-3 px-4 max-w-[200px]">
-                            {apt.medical_notes ? (
-                              <button
-                                type="button"
-                                onClick={() => setViewingNotesAppointment(apt)}
-                                className="group text-left flex items-start gap-1.5 p-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all cursor-pointer w-full shadow-xs"
-                                title="Klik untuk membaca catatan dokter / resep lengkap"
-                              >
-                                <FileText className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                                <div className="overflow-hidden">
-                                  <span className="text-[11px] font-semibold text-emerald-900 block truncate">
-                                    {apt.medical_notes}
-                                  </span>
-                                  <span className="text-[10px] text-emerald-700 font-bold block">
-                                    Buka Catatan →
-                                  </span>
-                                </div>
-                              </button>
-                            ) : (
-                              <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                                <Clock className="w-3 h-3 text-gray-300 shrink-0" />
-                                <span className="italic">
-                                  {apt.status === 'completed' ? 'Tidak ada catatan' : 'Menunggu dokter'}
-                                </span>
-                              </div>
-                            )}
-                          </td>
                           <td className="py-3 px-4">
                             <span
                               className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -776,14 +748,21 @@ export default function AdminDashboardView({
                               <button
                                 type="button"
                                 onClick={() => setViewingNotesAppointment(apt)}
-                                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                className={`relative p-1.5 rounded-lg border transition-all cursor-pointer ${
                                   apt.medical_notes
-                                    ? 'text-emerald-700 hover:bg-emerald-50 border-emerald-300 bg-emerald-50/50'
-                                    : 'text-gray-500 hover:bg-gray-100 border-gray-200'
+                                    ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 shadow-xs'
+                                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 border-gray-200'
                                 }`}
-                                title={apt.medical_notes ? 'Lihat Catatan & Resep Dokter' : 'Lihat Detail Pasien'}
+                                title={
+                                  apt.medical_notes
+                                    ? `Catatan Dokter: "${apt.medical_notes.slice(0, 50)}${apt.medical_notes.length > 50 ? '...' : ''}" (Klik untuk buka)`
+                                    : 'Detail Pasien (Belum ada catatan dokter)'
+                                }
                               >
                                 <FileText className="w-3.5 h-3.5" />
+                                {apt.medical_notes && (
+                                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+                                )}
                               </button>
 
                               {apt.status !== 'completed' && (
