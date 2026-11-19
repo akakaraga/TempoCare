@@ -130,6 +130,14 @@ export async function rescheduleAppointmentAction(
       return { success: false, error: result.error };
     }
 
+    if (result.appointment) {
+      try {
+        await sendAppointmentEmail(result.appointment);
+      } catch (e) {
+        console.error('Email error on reschedule:', e);
+      }
+    }
+
     revalidatePath('/manage');
     revalidatePath('/dashboard/doctor');
     revalidatePath('/dashboard/admin');

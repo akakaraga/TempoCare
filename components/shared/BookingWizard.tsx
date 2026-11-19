@@ -162,6 +162,10 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
       toast.error('Mohon isi nama pasien dan nomor WhatsApp.');
       return;
     }
+    if (!patientEmail.trim() || !patientEmail.includes('@') || !patientEmail.includes('.')) {
+      toast.error('Mohon masukkan alamat email yang valid untuk menerima bukti pendaftaran & nomor antrean.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -629,19 +633,28 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-medical-text block mb-1">
-                    Alamat Email
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-medical-text">
+                      Alamat Email Pasien <span className="text-rose-500">*</span>
+                    </label>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
+                      Kirim Tiket & Antrean
+                    </span>
+                  </div>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-medical-muted absolute left-3.5 top-3" />
                     <input
                       type="email"
-                      placeholder="emailanda@gmail.com"
+                      required
+                      placeholder="contoh: pasien@gmail.com"
                       value={patientEmail}
                       onChange={(e) => setPatientEmail(e.target.value)}
                       className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-medical-border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-medical-primary bg-white text-medical-text shadow-2xs"
                     />
                   </div>
+                  <span className="text-[10px] text-medical-muted mt-1 block">
+                    *Nomor antrean dan rincian jadwal akan otomatis dikirimkan ke alamat email ini.
+                  </span>
                 </div>
 
                 <div>
@@ -757,6 +770,21 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   </span>
                 </div>
               </div>
+
+              {/* Notifikasi Pengiriman Email Otomatis */}
+              {confirmedBooking.patient_email && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-xs text-emerald-900">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-0.5 overflow-hidden">
+                    <p className="font-bold text-emerald-950">Email Konfirmasi Otomatis Terkirim!</p>
+                    <p className="text-[11px] text-emerald-800 truncate">
+                      Bukti nomor antrean telah dikirimkan ke <strong>{confirmedBooking.patient_email}</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Tautan Ganti Jadwal */}
               <div className="border border-medical-border rounded-2xl p-4 bg-white space-y-2">

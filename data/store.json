@@ -114,6 +114,25 @@
   ],
   "appointments": [
     {
+      "id": "87d65148-9c63-4e11-a891-24f2206086e9",
+      "patient_name": "Si A-",
+      "patient_whatsapp": "-",
+      "patient_email": "helga.akaga@gmail.com",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2",
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "appointment_date": "2026-11-20",
+      "start_time": "14:00",
+      "end_time": "14:30",
+      "status": "confirmed",
+      "initial_complaint": "Linu pada gigi",
+      "medical_notes": null,
+      "queue_number": "G-001",
+      "reschedule_token": "3461b73b-350c-499e-bd5e-39f081f2c3b3",
+      "token_expires_at": "2026-11-19T07:00:00.000Z",
+      "is_walk_in": false,
+      "created_at": "2026-11-19T07:25:43.417Z"
+    },
+    {
       "id": "7b93474d-2683-44ca-8bf1-13447f732461",
       "patient_name": "Aka",
       "patient_whatsapp": "089123123321",
