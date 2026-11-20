@@ -72,6 +72,12 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
   // Booking Result Modal
   const [confirmedBooking, setConfirmedBooking] = useState<Appointment | null>(null);
+  const [emailSendStatus, setEmailSendStatus] = useState<{
+    success: boolean;
+    error?: string;
+    provider?: string;
+    simulated?: boolean;
+  } | null>(null);
 
   // Selected service and doctor objects
   const selectedService = services.find((s) => s.id === selectedServiceId);
@@ -183,6 +189,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
       if (res.success && res.appointment) {
         setConfirmedBooking(res.appointment);
+        setEmailSendStatus(res.emailStatus || null);
         toast.success(`Pendaftaran Berhasil! Nomor Antrean: ${res.appointment.queue_number}`);
       } else {
         toast.error(res.error || 'Jam tersebut baru saja dipilih pasien lain. Silakan pilih jam lain.');
@@ -197,6 +204,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
   const resetForm = () => {
     setConfirmedBooking(null);
+    setEmailSendStatus(null);
     setStep(1);
     setSelectedSlot(null);
     setPatientName('');
@@ -773,14 +781,54 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
               {/* Notifikasi Pengiriman Email Otomatis */}
               {confirmedBooking.patient_email && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-xs text-emerald-900">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <div
+                  className={`p-3.5 rounded-2xl flex items-start gap-3 text-xs border ${
+                    emailSendStatus === null || emailSendStatus.success
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                      : 'bg-amber-50 border-amber-200 text-amber-900'
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs text-white ${
+                      emailSendStatus === null || emailSendStatus.success
+                        ? 'bg-emerald-600'
+                        : 'bg-amber-600'
+                    }`}
+                  >
                     <Mail className="w-4 h-4" />
                   </div>
                   <div className="space-y-0.5 overflow-hidden">
-                    <p className="font-bold text-emerald-950">Email Konfirmasi Otomatis Terkirim!</p>
-                    <p className="text-[11px] text-emerald-800 truncate">
-                      Bukti nomor antrean telah dikirimkan ke <strong>{confirmedBooking.patient_email}</strong>.
+                    <p className="font-bold">
+                      {emailSendStatus === null || emailSendStatus.success
+                        ? 'Email Konfirmasi Berhasil Dikirim!'
+                        : 'Pendaftaran Berhasil (Email Perlu Verifikasi Domain)'}
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      {emailSendStatus === null || emailSendStatus.success ? (
+                        <>
+                          Bukti nomor antrean telah dikirimkan ke <strong>{confirmedBooking.patient_email}</strong>.
+                          {emailSendStatus?.simulated && (
+                            <span className="block text-[10px] text-gray-500 mt-0.5 italic">
+                              (Mode simulasi lokal development)
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          Nomor antrean Anda tetap aktif ({confirmedBooking.queue_number}).{' '}
+                          {emailSendStatus.error?.includes('testing email') ||
+                          emailSendStatus.error?.includes('own email') ||
+                          emailSendStatus.error?.includes('validation_error') ? (
+                            <span className="block text-[10px] text-amber-800 mt-0.5">
+                              *Catatan Resend: Domain testing (onboarding@resend.dev) hanya dapat mengirim ke email pemilik akun Resend. Untuk mengirim ke email pasien umum, daftarkan domain resmi faskes di Resend atau gunakan SMTP Gmail.
+                            </span>
+                          ) : (
+                            <span className="block text-[10px] text-amber-800 font-mono mt-0.5">
+                              {emailSendStatus.error}
+                            </span>
+                          )}
+                        </>
+                      )}
                     </p>
                   </div>
                 </div>

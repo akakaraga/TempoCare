@@ -97,10 +97,13 @@ export async function bookAppointmentAction(data: {
       return { success: false, error: result.error || 'Gagal membuat reservasi' };
     }
 
+    let emailStatus: { success: boolean; error?: string; provider?: string; simulated?: boolean } | null = null;
     try {
-      await sendAppointmentEmail(result.appointment);
-    } catch (e) {
-      console.error('Email error:', e);
+      emailStatus = await sendAppointmentEmail(result.appointment);
+      console.log('[Booking Action Email Status]', emailStatus);
+    } catch (e: any) {
+      console.error('[Booking Action Email Error]:', e);
+      emailStatus = { success: false, error: e?.message || 'Gagal mengirim email' };
     }
 
     revalidatePath('/');
@@ -112,6 +115,7 @@ export async function bookAppointmentAction(data: {
       appointment: result.appointment,
       queueNumber: result.appointment.queue_number,
       token: result.appointment.reschedule_token,
+      emailStatus,
     };
   } catch (err: any) {
     return { success: false, error: err.message || 'Terjadi kesalahan sistem' };

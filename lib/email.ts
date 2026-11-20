@@ -4,8 +4,7 @@ import { Appointment } from './types';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
 
 /**
  * Membuat transporter Nodemailer jika kredensial SMTP atau Gmail dikonfigurasi di .env
@@ -66,7 +65,7 @@ export async function sendAppointmentEmail(appointment: Appointment) {
   const queueNo = appointment.queue_number || 'A-001';
   const timeSlot = `${appointment.start_time} - ${appointment.end_time} WIB`;
   const complaint = appointment.initial_complaint || '-';
-  const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM || 'TempoCare <notifications@tempocare.clinic>';
+  const fromEmail = process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM || 'TempoCare <onboarding@resend.dev>';
   const subject = `[TempoCare] Pendaftaran Berhasil • Nomor Antrean: ${queueNo}`;
 
   // ==========================================
@@ -360,11 +359,14 @@ Layanan Pelanggan: ${appUrl}
   `.trim();
 
   // ==========================================
-  // PENGIRIMAN: 1. RESEND (Jika ada RESEND_API_KEY)
+  // PENGIRIMAN: 1. RESEND (Mengecek RESEND_API_KEY secara dinamis)
   // ==========================================
-  if (resend) {
+  const activeResendKey = process.env.RESEND_API_KEY?.trim();
+  if (activeResendKey) {
     try {
-      const { data, error } = await resend.emails.send({
+      console.log(`[TempoCare Email] Menghubungi Resend API untuk mengirim email ke: ${recipientEmail}...`);
+      const dynamicResend = new Resend(activeResendKey);
+      const { data, error } = await dynamicResend.emails.send({
         from: fromEmail,
         to: [recipientEmail],
         subject,
@@ -373,14 +375,15 @@ Layanan Pelanggan: ${appUrl}
       });
 
       if (error) {
-        console.error('[Resend Error]', error);
-        return { success: false, error: error.message };
+        console.error('[TempoCare Email] Resend mengembalikan error:', error.message);
+        return { success: false, error: error.message, provider: 'resend' };
       }
 
-      console.log(`[TempoCare Email] Email berhasil dikirim via Resend ke ${recipientEmail} (ID: ${data?.id})`);
+      console.log(`[TempoCare Email] ✓ Berhasil terkirim via Resend ke ${recipientEmail} (ID: ${data?.id})`);
       return { success: true, id: data?.id, provider: 'resend' };
     } catch (err: any) {
-      console.error('[Resend Exception]', err);
+      console.error('[TempoCare Email] Gagal menghubungi Resend API:', err.message);
+      return { success: false, error: err.message, provider: 'resend' };
     }
   }
 
@@ -390,6 +393,7 @@ Layanan Pelanggan: ${appUrl}
   const smtpTransporter = createSmtpTransporter();
   if (smtpTransporter) {
     try {
+      console.log(`[TempoCare Email] Menghubungi server SMTP untuk mengirim email ke: ${recipientEmail}...`);
       const info = await smtpTransporter.sendMail({
         from: fromEmail,
         to: recipientEmail,
@@ -398,10 +402,11 @@ Layanan Pelanggan: ${appUrl}
         html: htmlContent,
       });
 
-      console.log(`[TempoCare Email] Email berhasil dikirim via SMTP/Gmail ke ${recipientEmail} (MsgID: ${info.messageId})`);
+      console.log(`[TempoCare Email] ✓ Berhasil terkirim via SMTP ke ${recipientEmail} (MsgID: ${info.messageId})`);
       return { success: true, id: info.messageId, provider: 'smtp' };
     } catch (err: any) {
-      console.error('[SMTP Exception]', err);
+      console.error('[TempoCare Email] Gagal mengirim via SMTP:', err.message);
+      return { success: false, error: err.message, provider: 'smtp' };
     }
   }
 
@@ -416,7 +421,7 @@ Layanan Pelanggan: ${appUrl}
   console.log(`Dokter / Poli  : ${docName} (${srvName})`);
   console.log(`Tanggal / Jam  : ${formattedDate} (${timeSlot})`);
   console.log(`Tautan Jadwal  : ${manageUrl}`);
-  console.log(`Status         : Sukses tercatat (Atur RESEND_API_KEY atau SMTP di .env untuk pengiriman nyata)`);
+  console.log(`Status         : Sukses tercatat (Kunci RESEND_API_KEY atau SMTP belum diset)`);
   console.log(`======================================================\n`);
 
   return { success: true, simulated: true, provider: 'local_simulation' };
