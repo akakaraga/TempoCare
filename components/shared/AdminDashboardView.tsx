@@ -1990,7 +1990,7 @@ export default function AdminDashboardView({
                 <label className="block font-semibold text-medical-text mb-1">Keluhan Pasien</label>
                 <input
                   type="text"
-                  placeholder="Keluhan singkat saat registrasi di meja faskes"
+                  placeholder="Keluhan singkat pasien"
                   value={walkInComplaint}
                   onChange={(e) => setWalkInComplaint(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
