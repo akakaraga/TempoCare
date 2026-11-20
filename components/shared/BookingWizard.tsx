@@ -635,9 +635,6 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                       className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-medical-border text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-medical-primary bg-white text-medical-text shadow-2xs"
                     />
                   </div>
-                  <span className="text-[10px] text-medical-muted mt-1 block">
-                    *Nomor antrean dan konfirmasi akan dikirimkan ke nomor ini.
-                  </span>
                 </div>
 
                 <div>
@@ -645,9 +642,6 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                     <label className="text-xs font-bold text-medical-text">
                       Alamat Email Pasien <span className="text-rose-500">*</span>
                     </label>
-                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold">
-                      Kirim Tiket & Antrean
-                    </span>
                   </div>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-medical-muted absolute left-3.5 top-3" />
@@ -673,6 +667,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                     <FileText className="w-4 h-4 text-medical-muted absolute left-3.5 top-3" />
                     <input
                       type="text"
+                      required
                       placeholder="Contoh: Demam 3 hari, batuk, cek gigi rutin"
                       value={initialComplaint}
                       onChange={(e) => setInitialComplaint(e.target.value)}
