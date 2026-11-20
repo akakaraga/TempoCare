@@ -120,6 +120,7 @@ export default function AdminDashboardView({
   // Walk-in form states
   const [walkInName, setWalkInName] = useState<string>('');
   const [walkInPhone, setWalkInPhone] = useState<string>('');
+  const [walkInEmail, setWalkInEmail] = useState<string>('');
   const [walkInServiceId, setWalkInServiceId] = useState<string>(services[0]?.id || '');
   const [walkInDoctorId, setWalkInDoctorId] = useState<string>(
     staffList.find((s) => s.role === 'doctor')?.id || ''
@@ -203,6 +204,7 @@ export default function AdminDashboardView({
       const res = await createWalkInAppointmentAction({
         patient_name: walkInName,
         patient_whatsapp: walkInPhone,
+        patient_email: walkInEmail.trim() || undefined,
         service_id: walkInServiceId,
         staff_id: walkInDoctorId,
         appointment_date: walkInDate,
@@ -217,6 +219,7 @@ export default function AdminDashboardView({
         setShowWalkInModal(false);
         setWalkInName('');
         setWalkInPhone('');
+        setWalkInEmail('');
         setWalkInComplaint('');
       } else {
         toast.error(res.error || 'Gagal mendaftarkan pasien walk-in');
@@ -1911,6 +1914,25 @@ export default function AdminDashboardView({
                   onChange={(e) => setWalkInPhone(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
                 />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-medical-text">Alamat Email Pasien</label>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
+                    Kirim Tiket & Antrean
+                  </span>
+                </div>
+                <input
+                  type="email"
+                  placeholder="pasien@gmail.com"
+                  value={walkInEmail}
+                  onChange={(e) => setWalkInEmail(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
+                />
+                <span className="text-[10px] text-medical-muted mt-0.5 block">
+                  *Opsional. Jika diisi, bukti tiket antrean akan dikirimkan otomatis ke email pasien.
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

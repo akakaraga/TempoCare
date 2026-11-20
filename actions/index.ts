@@ -243,6 +243,14 @@ export async function createWalkInAppointmentAction(data: {
       return { success: false, error: result.error };
     }
 
+    if (result.appointment.patient_email) {
+      try {
+        await sendAppointmentEmail(result.appointment);
+      } catch (e) {
+        console.error('[Walk-In Email Error]', e);
+      }
+    }
+
     revalidatePath('/dashboard/admin');
     revalidatePath('/dashboard/doctor');
     return { success: true, appointment: result.appointment };
