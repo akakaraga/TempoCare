@@ -53,7 +53,7 @@ function loadLocalStore(): LocalStore {
     if (fs.existsSync(STORE_FILE)) {
       const raw = fs.readFileSync(STORE_FILE, 'utf8');
       const parsed = JSON.parse(raw);
-      return {
+      const store: LocalStore = {
         clinic_settings: parsed.clinic_settings || defaultClinicSettings,
         staff: parsed.staff && parsed.staff.length > 0 ? parsed.staff : [defaultAdminStaff],
         services: parsed.services || [],
@@ -61,6 +61,10 @@ function loadLocalStore(): LocalStore {
         appointments: parsed.appointments || [],
         block_outs: parsed.block_outs || [],
       };
+      if (resequenceAllStoreAppointments(store)) {
+        saveLocalStore(store);
+      }
+      return store;
     }
   } catch (err) {
     console.error('Gagal membaca store lokal:', err);
@@ -123,19 +127,63 @@ export function normalizeTime(t: string): string {
   return t;
 }
 
-function generateQueueNumber(serviceName: string, date: string, appointments: Appointment[]): string {
-  let prefix = 'P';
-  if (serviceName.toLowerCase().includes('anak')) prefix = 'A';
-  else if (serviceName.toLowerCase().includes('gigi')) prefix = 'G';
-  else if (serviceName.toLowerCase().includes('dalam')) prefix = 'D';
-  else if (serviceName.toLowerCase().includes('umum')) prefix = 'U';
-  else if (serviceName.toLowerCase().includes('mata')) prefix = 'M';
-  else if (serviceName.toLowerCase().includes('tht')) prefix = 'T';
-  else if (serviceName.toLowerCase().includes('kandungan')) prefix = 'O';
+export function getServicePrefix(serviceName: string): string {
+  const s = (serviceName || '').toLowerCase();
+  if (s.includes('anak')) return 'A';
+  if (s.includes('gigi')) return 'G';
+  if (s.includes('dalam')) return 'D';
+  if (s.includes('umum')) return 'U';
+  if (s.includes('mata')) return 'M';
+  if (s.includes('tht')) return 'T';
+  if (s.includes('kandungan') || s.includes('obgyn') || s.includes('kebidanan')) return 'O';
+  if (s.includes('kulit')) return 'K';
+  if (s.includes('saraf')) return 'S';
+  if (s.includes('jantung')) return 'J';
+  if (s.includes('bedah')) return 'B';
 
-  const countToday = (appointments || []).filter((a) => a.appointment_date === date).length;
-  const number = (countToday + 1).toString().padStart(3, '0');
-  return `${prefix}-${number}`;
+  const firstLetter = (serviceName || '').trim().charAt(0).toUpperCase();
+  return /^[A-Z]$/.test(firstLetter) ? firstLetter : 'P';
+}
+
+/**
+ * Mengurutkan dan menetapkan ulang nomor antrean untuk seluruh janji temu aktif
+ * pada tanggal dan poli/layanan tertentu secara kronologis (berdasarkan start_time).
+ * - Me-refresh setiap hari (mulai dari 001 untuk setiap tanggal).
+ * - Terpisah untuk masing-masing poli (misal G-001 vs U-001).
+ * - Urutan nomor disesuaikan persis dengan urutan jam periksa (jam paling pagi = nomor antrean 1).
+ */
+export function resequenceAllStoreAppointments(store: LocalStore): boolean {
+  let hasChanges = false;
+  const groups: { [key: string]: Appointment[] } = {};
+
+  (store.appointments || []).forEach((a) => {
+    if (a.status === 'cancelled') return;
+    const srv = (store.services || []).find((s) => s.id === a.service_id);
+    const prefix = getServicePrefix(srv?.name || 'Umum');
+    const key = `${a.appointment_date}___${prefix}`;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(a);
+  });
+
+  Object.keys(groups).forEach((key) => {
+    const [, prefix] = key.split('___');
+    groups[key].sort((a, b) => {
+      const tA = normalizeTime(a.start_time);
+      const tB = normalizeTime(b.start_time);
+      if (tA !== tB) return tA.localeCompare(tB);
+      return (a.created_at || '').localeCompare(b.created_at || '');
+    });
+
+    groups[key].forEach((apt, idx) => {
+      const expectedQueue = `${prefix}-${(idx + 1).toString().padStart(3, '0')}`;
+      if (apt.queue_number !== expectedQueue) {
+        apt.queue_number = expectedQueue;
+        hasChanges = true;
+      }
+    });
+  });
+
+  return hasChanges;
 }
 
 // ==============================================================================
@@ -810,7 +858,7 @@ export const db = {
     }
 
     const service = (store.services || []).find((s) => s.id === input.service_id);
-    const queueNumber = generateQueueNumber(service?.name || 'Umum', input.appointment_date, store.appointments);
+    const prefix = getServicePrefix(service?.name || 'Umum');
 
     const aptDateTime = new Date(`${input.appointment_date}T${normStartTime}:00`);
     const tokenExpiresAt = new Date(aptDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -828,7 +876,7 @@ export const db = {
       status: 'confirmed',
       initial_complaint: input.initial_complaint?.trim() || null,
       medical_notes: null,
-      queue_number: queueNumber,
+      queue_number: `${prefix}-001`,
       reschedule_token: crypto.randomUUID(),
       token_expires_at: tokenExpiresAt,
       is_walk_in: Boolean(input.is_walk_in),
@@ -837,6 +885,13 @@ export const db = {
 
     // 1. Simpan ke local store persisten
     store.appointments = [newAppointment, ...(store.appointments || []).filter((a) => a.id !== newAppointment.id)];
+
+    // 2. Sinkronisasikan urutan antrean per hari dan per poli sesuai urutan jam mulai (start_time)
+    resequenceAllStoreAppointments(store);
+
+    const finalApt = store.appointments.find((a) => a.id === newAppointment.id) || newAppointment;
+    newAppointment.queue_number = finalApt.queue_number;
+
     saveLocalStore(store);
 
     // 2. Simpan ke Supabase PostgreSQL
@@ -922,6 +977,13 @@ export const db = {
     };
 
     store.appointments[index] = updated;
+
+    // Sinkronisasikan urutan antrean pada tanggal lama dan baru agar urutan jam per poli tetap konsisten
+    resequenceAllStoreAppointments(store);
+
+    const finalUpdated = store.appointments.find((a) => a.id === apt.id) || updated;
+    updated.queue_number = finalUpdated.queue_number;
+
     saveLocalStore(store);
 
     const supabase = getSupabaseClient();
@@ -933,6 +995,7 @@ export const db = {
             appointment_date: newDate,
             start_time: normStartTime,
             end_time: normEndTime,
+            queue_number: updated.queue_number,
             reschedule_token: updated.reschedule_token,
             token_expires_at: newTokenExpiresAt,
           })
@@ -972,6 +1035,7 @@ export const db = {
 
     apt.status = 'cancelled';
     store.appointments[index] = apt;
+    resequenceAllStoreAppointments(store);
     saveLocalStore(store);
 
     const supabase = getSupabaseClient();
