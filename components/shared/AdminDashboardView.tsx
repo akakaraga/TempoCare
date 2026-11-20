@@ -174,6 +174,7 @@ export default function AdminDashboardView({
       !searchTerm ||
       a.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.patient_whatsapp.includes(searchTerm) ||
+      (a.patient_email && a.patient_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (a.queue_number && a.queue_number.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchDoctor = selectedDoctorFilter === 'all' || a.staff_id === selectedDoctorFilter;
@@ -677,6 +678,7 @@ export default function AdminDashboardView({
                       <th className="py-3 px-4">Tanggal & Jam</th>
                       <th className="py-3 px-4">Nama Pasien</th>
                       <th className="py-3 px-4">WhatsApp</th>
+                      <th className="py-3 px-4">Email</th>
                       <th className="py-3 px-4">Dokter Bertugas</th>
                       <th className="py-3 px-4">Layanan</th>
                       <th className="py-3 px-4">Status</th>
@@ -686,7 +688,7 @@ export default function AdminDashboardView({
                   <tbody className="divide-y divide-gray-100">
                     {filteredAppointments.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-medical-muted">
+                        <td colSpan={9} className="py-12 text-center text-medical-muted">
                           Tidak ada data janji temu yang cocok dengan filter.
                         </td>
                       </tr>
@@ -719,6 +721,15 @@ export default function AdminDashboardView({
                           </td>
                           <td className="py-3 px-4 font-mono text-medical-muted">
                             {apt.patient_whatsapp || '-'}
+                          </td>
+                          <td className="py-3 px-4 text-medical-muted text-[11px]">
+                            {apt.patient_email ? (
+                              <span className="font-mono text-gray-700 block truncate max-w-[170px]" title={apt.patient_email}>
+                                {apt.patient_email}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 italic">-</span>
+                            )}
                           </td>
                           <td className="py-3 px-4 font-medium text-medical-text">
                             {apt.staff?.full_name}
@@ -2140,6 +2151,18 @@ export default function AdminDashboardView({
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+                  <div>
+                    <span className="text-medical-muted block">No. WhatsApp:</span>
+                    <span className="font-mono font-semibold text-medical-text">
+                      {viewingNotesAppointment.patient_whatsapp || '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-medical-muted block">Alamat Email:</span>
+                    <span className="font-mono font-semibold text-medical-text truncate block" title={viewingNotesAppointment.patient_email || '-'}>
+                      {viewingNotesAppointment.patient_email || '-'}
+                    </span>
+                  </div>
                   <div>
                     <span className="text-medical-muted block">Dokter Pemeriksa:</span>
                     <span className="font-semibold text-medical-text">{viewingNotesAppointment.staff?.full_name}</span>

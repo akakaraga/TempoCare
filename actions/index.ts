@@ -223,6 +223,7 @@ export async function deleteBlockOutAction(id: string) {
 export async function createWalkInAppointmentAction(data: {
   patient_name: string;
   patient_whatsapp: string;
+  patient_email?: string;
   service_id: string;
   staff_id: string;
   appointment_date: string;
@@ -234,6 +235,7 @@ export async function createWalkInAppointmentAction(data: {
     await verifyAdminSession();
     const result = await db.createAppointment({
       ...data,
+      patient_email: data.patient_email?.trim() || null,
       is_walk_in: true,
     });
 
