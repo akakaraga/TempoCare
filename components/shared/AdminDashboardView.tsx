@@ -1919,9 +1919,6 @@ export default function AdminDashboardView({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block font-semibold text-medical-text">Alamat Email Pasien</label>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
-                    Kirim Tiket & Antrean
-                  </span>
                 </div>
                 <input
                   type="email"
@@ -1930,9 +1927,6 @@ export default function AdminDashboardView({
                   onChange={(e) => setWalkInEmail(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
                 />
-                <span className="text-[10px] text-medical-muted mt-0.5 block">
-                  *Opsional. Jika diisi, bukti tiket antrean akan dikirimkan otomatis ke email pasien.
-                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
