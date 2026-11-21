@@ -715,16 +715,17 @@ export default function ManageAppointmentView({
                           Memeriksa jadwal dokter...
                         </div>
                       ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
                           {availableSlots.map((slot, idx) => {
                             const isSelected = selectedSlot?.startTime === slot.startTime;
+                            const orderNum = slot.slotOrder || idx + 1;
                             return (
                               <button
                                 key={idx}
                                 type="button"
                                 disabled={!slot.isAvailable}
                                 onClick={() => setSelectedSlot(slot)}
-                                className={`py-2 px-1 text-center rounded-xl text-xs font-bold border transition-all ${
+                                className={`py-2 px-1.5 text-center rounded-xl text-xs font-bold border transition-all flex flex-col items-center justify-center ${
                                   isSelected
                                     ? 'bg-medical-primary text-white border-medical-primary shadow-sm'
                                     : slot.isAvailable
@@ -732,7 +733,10 @@ export default function ManageAppointmentView({
                                     : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50 cursor-not-allowed'
                                 }`}
                               >
-                                {slot.startTime}
+                                <span className="font-extrabold">{slot.startTime}</span>
+                                <span className={`text-[9px] px-1 py-0.2 rounded font-medium mt-0.5 ${isSelected ? 'bg-white/20 text-white' : 'text-medical-muted'}`}>
+                                  Antrean {orderNum}
+                                </span>
                               </button>
                             );
                           })}

@@ -88,4 +88,6 @@ export interface TimeSlot {
   endTime: string;   // HH:mm
   isAvailable: boolean;
   reasonUnavailable?: 'booked' | 'blocked' | 'past' | 'break';
+  slotOrder?: number;
+  queueNumber?: string;
 }

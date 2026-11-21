@@ -48,6 +48,7 @@ export async function getAvailableSlotsAction(staffId: string, date: string, ser
       appointments,
       blockOuts,
       doctor,
+      serviceName: service.name,
     });
 
     return { success: true, slots };

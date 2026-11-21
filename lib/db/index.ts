@@ -146,41 +146,74 @@ export function getServicePrefix(serviceName: string): string {
 }
 
 /**
- * Mengurutkan dan menetapkan ulang nomor antrean untuk seluruh janji temu aktif
- * pada tanggal dan poli/layanan tertentu secara kronologis (berdasarkan start_time).
- * - Me-refresh setiap hari (mulai dari 001 untuk setiap tanggal).
- * - Terpisah untuk masing-masing poli (misal G-001 vs U-001).
- * - Urutan nomor disesuaikan persis dengan urutan jam periksa (jam paling pagi = nomor antrean 1).
+ * Menghitung urutan slot jam berdasarkan jadwal praktik dokter.
+ * Contoh dr. Rahmat mulai pukul 14:00 (durasi 30 menit):
+ * - 14:00 -> Urutan 1
+ * - 14:30 -> Urutan 2
+ * - 15:00 -> Urutan 3
+ * - 15:30 -> Urutan 4
+ * Nomor antrean langsung melekat pada slot jam tersebut, terlepas siapa yang mendaftar lebih dahulu.
+ */
+export function calculateSlotOrder(
+  startTime: string,
+  doctor?: Staff | null,
+  durationMinutes: number = 30,
+  clinicStartHour: number = 8
+): number {
+  let startH = clinicStartHour;
+  let startM = 0;
+
+  if (doctor?.practice_start_time) {
+    const [h, m] = doctor.practice_start_time.split(':').map(Number);
+    if (!isNaN(h)) startH = h;
+    if (!isNaN(m)) startM = m;
+  }
+
+  const normStartTime = normalizeTime(startTime);
+  const [targetH, targetM] = normStartTime.split(':').map(Number);
+  if (isNaN(targetH)) return 1;
+
+  const startTotalMinutes = startH * 60 + startM;
+  const targetTotalMinutes = targetH * 60 + (isNaN(targetM) ? 0 : targetM);
+  const diffMinutes = targetTotalMinutes - startTotalMinutes;
+
+  if (diffMinutes < 0) return 1;
+  const duration = durationMinutes > 0 ? durationMinutes : 30;
+  return Math.floor(diffMinutes / duration) + 1;
+}
+
+export function generateSlotQueueNumber(
+  serviceName: string,
+  startTime: string,
+  doctor?: Staff | null,
+  durationMinutes: number = 30
+): string {
+  const prefix = getServicePrefix(serviceName);
+  const order = calculateSlotOrder(startTime, doctor, durationMinutes);
+  return `${prefix}-${order.toString().padStart(3, '0')}`;
+}
+
+/**
+ * Memastikan seluruh nomor antrean aktif terhitung sinkron sesuai jam periksa
+ * pada jadwal praktik masing-masing poli/dokter.
  */
 export function resequenceAllStoreAppointments(store: LocalStore): boolean {
   let hasChanges = false;
-  const groups: { [key: string]: Appointment[] } = {};
 
-  (store.appointments || []).forEach((a) => {
-    if (a.status === 'cancelled') return;
-    const srv = (store.services || []).find((s) => s.id === a.service_id);
-    const prefix = getServicePrefix(srv?.name || 'Umum');
-    const key = `${a.appointment_date}___${prefix}`;
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(a);
-  });
-
-  Object.keys(groups).forEach((key) => {
-    const [, prefix] = key.split('___');
-    groups[key].sort((a, b) => {
-      const tA = normalizeTime(a.start_time);
-      const tB = normalizeTime(b.start_time);
-      if (tA !== tB) return tA.localeCompare(tB);
-      return (a.created_at || '').localeCompare(b.created_at || '');
-    });
-
-    groups[key].forEach((apt, idx) => {
-      const expectedQueue = `${prefix}-${(idx + 1).toString().padStart(3, '0')}`;
-      if (apt.queue_number !== expectedQueue) {
-        apt.queue_number = expectedQueue;
-        hasChanges = true;
-      }
-    });
+  (store.appointments || []).forEach((apt) => {
+    if (apt.status === 'cancelled') return;
+    const srv = (store.services || []).find((s) => s.id === apt.service_id);
+    const doc = (store.staff || []).find((s) => s.id === apt.staff_id);
+    const expectedQueue = generateSlotQueueNumber(
+      srv?.name || 'Umum',
+      apt.start_time,
+      doc,
+      srv?.duration_minutes || 30
+    );
+    if (apt.queue_number !== expectedQueue) {
+      apt.queue_number = expectedQueue;
+      hasChanges = true;
+    }
   });
 
   return hasChanges;
@@ -858,7 +891,13 @@ export const db = {
     }
 
     const service = (store.services || []).find((s) => s.id === input.service_id);
-    const prefix = getServicePrefix(service?.name || 'Umum');
+    const doctor = (store.staff || []).find((s) => s.id === input.staff_id);
+    const slotQueueNumber = generateSlotQueueNumber(
+      service?.name || 'Umum',
+      normStartTime,
+      doctor,
+      service?.duration_minutes || 30
+    );
 
     const aptDateTime = new Date(`${input.appointment_date}T${normStartTime}:00`);
     const tokenExpiresAt = new Date(aptDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -876,7 +915,7 @@ export const db = {
       status: 'confirmed',
       initial_complaint: input.initial_complaint?.trim() || null,
       medical_notes: null,
-      queue_number: `${prefix}-001`,
+      queue_number: slotQueueNumber,
       reschedule_token: crypto.randomUUID(),
       token_expires_at: tokenExpiresAt,
       is_walk_in: Boolean(input.is_walk_in),
@@ -964,6 +1003,15 @@ export const db = {
       return { success: false, error: 'Jadwal dokter pada jam tersebut sudah terisi. Silakan pilih slot lain.' };
     }
 
+    const service = (store.services || []).find((s) => s.id === apt.service_id);
+    const doctor = (store.staff || []).find((s) => s.id === apt.staff_id);
+    const slotQueueNumber = generateSlotQueueNumber(
+      service?.name || 'Umum',
+      normStartTime,
+      doctor,
+      service?.duration_minutes || 30
+    );
+
     const newAptDateTime = new Date(`${newDate}T${normStartTime}:00`);
     const newTokenExpiresAt = new Date(newAptDateTime.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -972,6 +1020,7 @@ export const db = {
       appointment_date: newDate,
       start_time: normStartTime,
       end_time: normEndTime,
+      queue_number: slotQueueNumber,
       reschedule_token: crypto.randomUUID(), // Rotasi token (One-time use)
       token_expires_at: newTokenExpiresAt,
     };

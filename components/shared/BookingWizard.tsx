@@ -509,15 +509,16 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5">
                     {slots.map((slot, idx) => {
                       const isSelected = selectedSlot?.startTime === slot.startTime;
+                      const orderNum = slot.slotOrder || idx + 1;
                       return (
                         <button
                           key={idx}
                           type="button"
                           disabled={!slot.isAvailable}
                           onClick={() => setSelectedSlot(slot)}
-                          className={`py-3 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center border ${
+                          className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center border relative ${
                             isSelected
-                              ? 'bg-medical-primary text-white border-medical-primary shadow-md scale-105'
+                              ? 'bg-medical-primary text-white border-medical-primary shadow-md scale-105 ring-2 ring-medical-primary/30'
                               : slot.isAvailable
                               ? 'bg-white text-medical-text border-medical-border hover:border-medical-primary hover:bg-medical-subtle/70'
                               : slot.reasonUnavailable === 'break'
@@ -526,7 +527,18 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                           }`}
                         >
                           <span className="text-sm font-extrabold">{slot.startTime}</span>
-                          <span className="text-[10px] font-normal opacity-90 mt-0.5">
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md mt-1 ${
+                              isSelected
+                                ? 'bg-white/20 text-white'
+                                : slot.isAvailable
+                                ? 'bg-medical-primary/10 text-medical-primary'
+                                : 'bg-gray-200 text-gray-500'
+                            }`}
+                          >
+                            Antrean {orderNum}
+                          </span>
+                          <span className="text-[10px] font-normal opacity-90 mt-1">
                             {slot.isAvailable
                               ? 'Tersedia'
                               : slot.reasonUnavailable === 'booked'
@@ -594,9 +606,12 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   <span className="text-medical-muted">{selectedDoctor?.specialization}</span>
                 </div>
                 <div>
-                  <span className="text-medical-muted block text-[11px]">Waktu Kunjungan:</span>
+                  <span className="text-medical-muted block text-[11px]">Waktu Kunjungan & Antrean:</span>
                   <span className="font-bold text-medical-primary text-sm block mt-0.5">
                     {selectedDate} ({selectedSlot?.startTime} - {selectedSlot?.endTime} WIB)
+                  </span>
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-medical-primary/10 text-medical-primary">
+                    Nomor Antrean: {selectedSlot?.queueNumber || `Antrean ${selectedSlot?.slotOrder || 1}`}
                   </span>
                 </div>
               </div>

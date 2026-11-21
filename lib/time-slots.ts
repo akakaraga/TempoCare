@@ -1,13 +1,15 @@
 import { addMinutes, format, parse, isBefore, isSameDay } from 'date-fns';
 import { Appointment, BlockOut, TimeSlot, Staff } from '@/lib/types';
 import { normalizeTime } from '@/lib/db';
+import { getServicePrefix } from '@/lib/utils';
 
-interface GenerateSlotsParams {
+export interface GenerateSlotsParams {
   date: string; // YYYY-MM-DD
   durationMinutes: number;
   appointments: Appointment[];
   blockOuts: BlockOut[];
   doctor?: Staff | null;
+  serviceName?: string;
   clinicStartHour?: number; // default: 8 (08:00)
   clinicEndHour?: number;   // default: 17 (17:00)
   breakStartHour?: number;  // default: 12 (12:00)
@@ -34,6 +36,7 @@ export function generateAvailableSlots({
   appointments,
   blockOuts,
   doctor,
+  serviceName,
   clinicStartHour = 8,
   clinicEndHour = 17,
   breakStartHour = 12,
@@ -87,6 +90,9 @@ export function generateAvailableSlots({
   // Active block-outs for this date
   const dayBlockOuts = blockOuts.filter((b) => b.block_date === date);
 
+  let slotIndex = 0;
+  const prefix = serviceName ? getServicePrefix(serviceName) : '';
+
   while (isBefore(currentTime, endTime)) {
     const slotStartStr = format(currentTime, 'HH:mm');
     const nextTime = addMinutes(currentTime, durationMinutes);
@@ -96,6 +102,7 @@ export function generateAvailableSlots({
       break;
     }
 
+    slotIndex += 1;
     const slotEndStr = format(nextTime, 'HH:mm');
     const slotHour = currentTime.getHours();
 
@@ -142,11 +149,15 @@ export function generateAvailableSlots({
       }
     }
 
+    const queueNumber = prefix ? `${prefix}-${slotIndex.toString().padStart(3, '0')}` : undefined;
+
     slots.push({
       startTime: slotStartStr,
       endTime: slotEndStr,
       isAvailable,
       reasonUnavailable,
+      slotOrder: slotIndex,
+      queueNumber,
     });
 
     currentTime = nextTime;
