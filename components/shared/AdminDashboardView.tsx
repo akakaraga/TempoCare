@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Appointment, Staff, Service, BlockOut, ClinicSettings } from '@/lib/types';
+import { Appointment, Staff, Service, BlockOut, ClinicSettings, TimeSlot } from '@/lib/types';
 import {
   createWalkInAppointmentAction,
+  getAvailableSlotsAction,
   createBlockOutAction,
   deleteBlockOutAction,
   createStaffAction,
@@ -61,6 +62,7 @@ interface AdminDashboardViewProps {
 }
 
 const ALL_DAYS = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+const DAY_INDEX_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 export default function AdminDashboardView({
   initialAppointments,
@@ -129,6 +131,65 @@ export default function AdminDashboardView({
   const [walkInStartTime, setWalkInStartTime] = useState<string>('09:00');
   const [walkInComplaint, setWalkInComplaint] = useState<string>('');
   const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState<boolean>(false);
+  const [walkInSlots, setWalkInSlots] = useState<TimeSlot[]>([]);
+  const [loadingWalkInSlots, setLoadingWalkInSlots] = useState<boolean>(false);
+  const [selectedWalkInSlot, setSelectedWalkInSlot] = useState<TimeSlot | null>(null);
+
+  const selectedWalkInDoctor = doctors.find((d) => d.id === walkInDoctorId);
+  const selectedWalkInService = serviceList.find((s) => s.id === walkInServiceId);
+
+  const getDayNameFromDateStr = (dateStr: string) => {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    if (!y || !m || !d) return '';
+    const dt = new Date(y, m - 1, d);
+    return DAY_INDEX_NAMES[dt.getDay()] || '';
+  };
+
+  const walkInDayName = getDayNameFromDateStr(walkInDate);
+  const isWalkInDoctorOff = Boolean(
+    selectedWalkInDoctor?.practice_days &&
+    selectedWalkInDoctor.practice_days.length > 0 &&
+    walkInDayName &&
+    !selectedWalkInDoctor.practice_days.includes(walkInDayName)
+  );
+
+  const loadWalkInSlots = async (docId: string, date: string, srvId: string) => {
+    if (!docId || !date || !srvId) return;
+    setLoadingWalkInSlots(true);
+    setSelectedWalkInSlot(null);
+    try {
+      const res = await getAvailableSlotsAction(docId, date, srvId);
+      if (res.success && res.slots) {
+        setWalkInSlots(res.slots);
+      } else {
+        setWalkInSlots([]);
+      }
+    } catch {
+      setWalkInSlots([]);
+    } finally {
+      setLoadingWalkInSlots(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showWalkInModal && walkInDoctorId && walkInDate && walkInServiceId) {
+      loadWalkInSlots(walkInDoctorId, walkInDate, walkInServiceId);
+    }
+  }, [showWalkInModal, walkInDoctorId, walkInDate, walkInServiceId]);
+
+  const handleWalkInServiceChange = (serviceId: string) => {
+    setWalkInServiceId(serviceId);
+    const matchingDocs = doctors.filter(
+      (d) =>
+        d.role === 'doctor' &&
+        d.is_active &&
+        (!d.assigned_service_ids || d.assigned_service_ids.length === 0 || d.assigned_service_ids.includes(serviceId))
+    );
+    if (matchingDocs.length > 0 && !matchingDocs.some((d) => d.id === walkInDoctorId)) {
+      setWalkInDoctorId(matchingDocs[0].id);
+    }
+  };
 
   // Block-out form states
   const [blockDoctorId, setBlockDoctorId] = useState<string>(
@@ -190,17 +251,12 @@ export default function AdminDashboardView({
   // ----------------------------------------------------------------------------
   const handleWalkInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedWalkInSlot || !selectedWalkInSlot.isAvailable) {
+      toast.error('Silakan pilih salah satu slot jam praktik yang terbuka (tersedia).');
+      return;
+    }
     setIsSubmittingWalkIn(true);
     try {
-      const selectedSrv = serviceList.find((s) => s.id === walkInServiceId);
-      const duration = selectedSrv?.duration_minutes || 30;
-
-      const [h, m] = walkInStartTime.split(':').map(Number);
-      const endTotalMin = h * 60 + m + duration;
-      const endH = Math.floor(endTotalMin / 60).toString().padStart(2, '0');
-      const endM = (endTotalMin % 60).toString().padStart(2, '0');
-      const calculatedEnd = `${endH}:${endM}`;
-
       const res = await createWalkInAppointmentAction({
         patient_name: walkInName,
         patient_whatsapp: walkInPhone,
@@ -208,8 +264,8 @@ export default function AdminDashboardView({
         service_id: walkInServiceId,
         staff_id: walkInDoctorId,
         appointment_date: walkInDate,
-        start_time: walkInStartTime,
-        end_time: calculatedEnd,
+        start_time: selectedWalkInSlot.startTime,
+        end_time: selectedWalkInSlot.endTime,
         initial_complaint: walkInComplaint,
       });
 
@@ -221,6 +277,7 @@ export default function AdminDashboardView({
         setWalkInPhone('');
         setWalkInEmail('');
         setWalkInComplaint('');
+        setSelectedWalkInSlot(null);
       } else {
         toast.error(res.error || 'Gagal mendaftarkan pasien walk-in');
       }
@@ -1875,23 +1932,26 @@ export default function AdminDashboardView({
       {/* MODAL: WALK-IN APPOINTMENT */}
       {/* ------------------------------------------------------------------ */}
       {showWalkInModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-medical-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="bg-medical-primary text-white p-5 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col border border-medical-border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="bg-medical-primary text-white p-4 sm:p-5 flex items-center justify-between shrink-0">
               <div>
-                <h3 className="text-base font-bold">Pendaftaran Pasien Walk-in / IGD</h3>
+                <h3 className="text-base font-bold flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Pendaftaran Pasien Walk-in / IGD
+                </h3>
                 <span className="text-xs text-white/80">Input langsung oleh petugas resepsionis RS</span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowWalkInModal(false)}
-                className="text-white hover:text-gray-200 text-lg font-bold"
+                className="text-white hover:text-gray-200 text-lg font-bold w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleWalkInSubmit} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleWalkInSubmit} className="p-5 space-y-4 text-xs overflow-y-auto">
               <div>
                 <label className="block font-semibold text-medical-text mb-1">Nama Pasien *</label>
                 <input
@@ -1904,44 +1964,43 @@ export default function AdminDashboardView({
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold text-medical-text mb-1">Nomor WhatsApp *</label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="081234567890"
-                  value={walkInPhone}
-                  onChange={(e) => setWalkInPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block font-semibold text-medical-text">Alamat Email Pasien</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-medical-text mb-1">Nomor WhatsApp *</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="081234567890"
+                    value={walkInPhone}
+                    onChange={(e) => setWalkInPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
+                  />
                 </div>
-                <input
-                  type="email"
-                  placeholder="pasien@gmail.com"
-                  value={walkInEmail}
-                  onChange={(e) => setWalkInEmail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
-                />
+                <div>
+                  <label className="block font-semibold text-medical-text mb-1">Alamat Email Pasien</label>
+                  <input
+                    type="email"
+                    placeholder="pasien@gmail.com"
+                    value={walkInEmail}
+                    onChange={(e) => setWalkInEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-medical-text mb-1">Poliklinik / Layanan</label>
                   <select
                     value={walkInServiceId}
-                    onChange={(e) => setWalkInServiceId(e.target.value)}
-                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none bg-white"
+                    onChange={(e) => handleWalkInServiceChange(e.target.value)}
+                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none bg-white font-medium"
                   >
                     {serviceList
                       .filter((s) => s.is_active)
                       .map((s) => (
                         <option key={s.id} value={s.id}>
-                          {s.name}
+                          {s.name} ({s.duration_minutes} mnt)
                         </option>
                       ))}
                   </select>
@@ -1952,7 +2011,7 @@ export default function AdminDashboardView({
                   <select
                     value={walkInDoctorId}
                     onChange={(e) => setWalkInDoctorId(e.target.value)}
-                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none bg-white"
+                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none bg-white font-medium"
                   >
                     {doctors
                       .filter((d) => d.role === 'doctor' && d.is_active)
@@ -1965,32 +2024,154 @@ export default function AdminDashboardView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-medical-text mb-1">Tanggal</label>
-                  <input
-                    type="date"
-                    value={walkInDate}
-                    onChange={(e) => setWalkInDate(e.target.value)}
-                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
-                  />
+              {/* Banner Jadwal Praktik Dokter Terpilih */}
+              {selectedWalkInDoctor && (
+                <div className="p-2.5 rounded-xl bg-medical-subtle/80 border border-medical-primary/20 flex flex-col gap-1 text-[11px]">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-medical-primary flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Jadwal Praktik: {selectedWalkInDoctor.full_name}
+                    </span>
+                    <span className="font-semibold text-medical-text">
+                      {selectedWalkInDoctor.practice_start_time?.slice(0, 5) || '08:00'} - {selectedWalkInDoctor.practice_end_time?.slice(0, 5) || '17:00'} WIB
+                    </span>
+                  </div>
+                  <div className="text-medical-muted">
+                    Hari Praktik: <strong className="text-medical-text">{selectedWalkInDoctor.practice_days?.join(', ') || 'Senin s/d Jumat'}</strong>
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-semibold text-medical-text mb-1">Jam Mulai</label>
-                  <input
-                    type="time"
-                    value={walkInStartTime}
-                    onChange={(e) => setWalkInStartTime(e.target.value)}
-                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
-                  />
+              )}
+
+              {/* Tanggal & Peringatan Blok Hari Libur Dokter */}
+              <div>
+                <label className="block font-semibold text-medical-text mb-1">Tanggal Kunjungan</label>
+                <input
+                  type="date"
+                  value={walkInDate}
+                  onChange={(e) => setWalkInDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none font-medium"
+                />
+                {isWalkInDoctorOff && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Dokter Tidak Praktik Pada Hari {walkInDayName}!</p>
+                      <p className="text-[10px] mt-0.5 text-amber-700">
+                        Jadwal tanggal ini diblokir karena dokter hanya berpraktik pada: {selectedWalkInDoctor?.practice_days?.join(', ')}.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Waktu / Slot Jam Konsultasi (Blok Terbuka vs Blok Tertutup) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-semibold text-medical-text">
+                    Pilih Slot Jam Konsultasi (Blok Jadwal)
+                  </label>
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span> Terbuka
+                    </span>
+                    <span className="flex items-center gap-1 text-rose-600 font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-rose-400 inline-block"></span> Diblokir
+                    </span>
+                  </div>
                 </div>
+
+                {loadingWalkInSlots ? (
+                  <div className="py-6 text-center text-xs text-medical-muted bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    Memeriksa ketersediaan slot jadwal dokter...
+                  </div>
+                ) : isWalkInDoctorOff || walkInSlots.length === 0 ? (
+                  <div className="p-4 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-medical-muted">
+                    <Ban className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                    <p className="font-semibold text-xs text-medical-text">Tidak ada blok slot yang terbuka pada tanggal ini.</p>
+                    <p className="text-[10px] mt-0.5">Silakan pilih tanggal yang sesuai hari praktik dokter.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {walkInSlots.map((slot, idx) => {
+                      const isSelected = selectedWalkInSlot?.startTime === slot.startTime;
+                      const orderNum = slot.slotOrder || idx + 1;
+
+                      if (!slot.isAvailable) {
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-2 rounded-xl border text-center flex flex-col items-center justify-center cursor-not-allowed opacity-60 ${
+                              slot.reasonUnavailable === 'booked'
+                                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                                : slot.reasonUnavailable === 'break'
+                                ? 'bg-amber-50 border-amber-200 text-amber-700'
+                                : 'bg-gray-100 border-gray-200 text-gray-500'
+                            }`}
+                          >
+                            <span className="font-bold text-xs line-through">{slot.startTime}</span>
+                            <span className="text-[9px] font-semibold mt-0.5">Antrean {orderNum}</span>
+                            <span className="text-[8px] uppercase tracking-wider font-bold mt-0.5">
+                              {slot.reasonUnavailable === 'booked'
+                                ? 'Penuh'
+                                : slot.reasonUnavailable === 'break'
+                                ? 'Istirahat'
+                                : slot.reasonUnavailable === 'blocked'
+                                ? 'Operasi'
+                                : 'Lewat'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setSelectedWalkInSlot(slot);
+                            setWalkInStartTime(slot.startTime);
+                          }}
+                          className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center ${
+                            isSelected
+                              ? 'bg-medical-primary text-white border-medical-primary shadow-sm scale-102 ring-2 ring-medical-primary/30'
+                              : 'bg-white text-medical-text border-emerald-300 hover:border-medical-primary hover:bg-medical-subtle/50'
+                          }`}
+                        >
+                          <span className="font-extrabold text-xs">{slot.startTime}</span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded mt-0.5 ${
+                              isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            Antrean {orderNum}
+                          </span>
+                          <span className="text-[8px] uppercase tracking-wider font-semibold mt-0.5 opacity-90">
+                            Terbuka
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {selectedWalkInSlot && (
+                  <div className="mt-2 p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center justify-between">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Slot Terpilih: {selectedWalkInSlot.startTime} - {selectedWalkInSlot.endTime} WIB
+                    </span>
+                    <span className="font-extrabold px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px]">
+                      {selectedWalkInSlot.queueNumber || `Antrean ${selectedWalkInSlot.slotOrder}`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>
                 <label className="block font-semibold text-medical-text mb-1">Keluhan Pasien</label>
                 <input
                   type="text"
-                  placeholder="Keluhan singkat pasien"
+                  placeholder="Keluhan singkat saat registrasi"
                   value={walkInComplaint}
                   onChange={(e) => setWalkInComplaint(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
@@ -2001,14 +2182,18 @@ export default function AdminDashboardView({
                 <button
                   type="button"
                   onClick={() => setShowWalkInModal(false)}
-                  className="px-4 py-2 rounded-xl text-medical-muted border border-medical-border font-semibold"
+                  className="px-4 py-2 rounded-xl text-medical-muted border border-medical-border font-semibold hover:bg-gray-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingWalkIn}
-                  className="px-5 py-2 rounded-xl font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all"
+                  disabled={isSubmittingWalkIn || !selectedWalkInSlot || !selectedWalkInSlot.isAvailable}
+                  className={`px-5 py-2 rounded-xl font-bold transition-all ${
+                    !selectedWalkInSlot || !selectedWalkInSlot.isAvailable
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-medical-primary text-white hover:bg-medical-primaryDark shadow-xs'
+                  }`}
                 >
                   {isSubmittingWalkIn ? 'Mendaftarkan...' : 'Daftarkan Pasien'}
                 </button>
