@@ -1954,7 +1954,7 @@ export default function AdminDashboardView({
               <div>
                 <h3 className="text-base font-bold flex items-center gap-2">
                   <UserPlus className="w-5 h-5" />
-                  Pendaftaran Pasien Walk-in / IGD
+                  Pendaftaran Pasien Walk-in
                 </h3>
                 <span className="text-xs text-white/80">Input langsung oleh petugas resepsionis RS</span>
               </div>
@@ -1970,7 +1970,7 @@ export default function AdminDashboardView({
             <form onSubmit={handleWalkInSubmit} className="p-5 space-y-4 text-xs overflow-y-auto">
               <div>
                 <label className="block font-semibold text-medical-text mb-1">
-                  Nama Pasien <span className="text-rose-500">*</span>
+                  Nama Lengkap Pasien <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1998,7 +1998,7 @@ export default function AdminDashboardView({
                 </div>
                 <div>
                   <label className="block font-semibold text-medical-text mb-1">
-                    Alamat Email Pasien <span className="text-rose-500">*</span>
+                    Email Pasien <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -2008,9 +2008,6 @@ export default function AdminDashboardView({
                     onChange={(e) => setWalkInEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
                   />
-                  <span className="text-[10px] text-medical-muted mt-0.5 block">
-                    *Bukti booking dan nomor antrean akan dikirim ke email ini.
-                  </span>
                 </div>
               </div>
 
@@ -2200,7 +2197,7 @@ export default function AdminDashboardView({
                 <input
                   type="text"
                   required
-                  placeholder="Keluhan singkat saat registrasi di meja faskes"
+                  placeholder="Keluhan singkat pasien"
                   value={walkInComplaint}
                   onChange={(e) => setWalkInComplaint(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
