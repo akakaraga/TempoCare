@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Appointment, Staff, Service, BlockOut, ClinicSettings, TimeSlot } from '@/lib/types';
 import {
   createWalkInAppointmentAction,
@@ -135,6 +135,32 @@ export default function AdminDashboardView({
   const [loadingWalkInSlots, setLoadingWalkInSlots] = useState<boolean>(false);
   const [selectedWalkInSlot, setSelectedWalkInSlot] = useState<TimeSlot | null>(null);
 
+  // Filter dokter yang bertugas khusus pada poli / layanan yang dipilih
+  const availableWalkInDoctors = useMemo(() => {
+    if (!walkInServiceId) return [];
+    return doctors.filter(
+      (d) =>
+        d.role === 'doctor' &&
+        d.is_active &&
+        d.assigned_service_ids &&
+        d.assigned_service_ids.includes(walkInServiceId)
+    );
+  }, [doctors, walkInServiceId]);
+
+  // Sinkronkan walkInDoctorId agar selalu menunjuk ke dokter yang bertugas di poli tersebut
+  useEffect(() => {
+    if (showWalkInModal && walkInServiceId) {
+      const isCurrentDoctorValid = availableWalkInDoctors.some((d) => d.id === walkInDoctorId);
+      if (!isCurrentDoctorValid) {
+        if (availableWalkInDoctors.length > 0) {
+          setWalkInDoctorId(availableWalkInDoctors[0].id);
+        } else {
+          setWalkInDoctorId('');
+        }
+      }
+    }
+  }, [showWalkInModal, walkInServiceId, availableWalkInDoctors, walkInDoctorId]);
+
   const selectedWalkInDoctor = doctors.find((d) => d.id === walkInDoctorId);
   const selectedWalkInService = serviceList.find((s) => s.id === walkInServiceId);
 
@@ -155,7 +181,10 @@ export default function AdminDashboardView({
   );
 
   const loadWalkInSlots = async (docId: string, date: string, srvId: string) => {
-    if (!docId || !date || !srvId) return;
+    if (!docId || !date || !srvId) {
+      setWalkInSlots([]);
+      return;
+    }
     setLoadingWalkInSlots(true);
     setSelectedWalkInSlot(null);
     try {
@@ -175,8 +204,11 @@ export default function AdminDashboardView({
   useEffect(() => {
     if (showWalkInModal && walkInDoctorId && walkInDate && walkInServiceId) {
       loadWalkInSlots(walkInDoctorId, walkInDate, walkInServiceId);
+    } else if (showWalkInModal && (!walkInDoctorId || availableWalkInDoctors.length === 0)) {
+      setWalkInSlots([]);
+      setSelectedWalkInSlot(null);
     }
-  }, [showWalkInModal, walkInDoctorId, walkInDate, walkInServiceId]);
+  }, [showWalkInModal, walkInDoctorId, walkInDate, walkInServiceId, availableWalkInDoctors]);
 
   const handleWalkInServiceChange = (serviceId: string) => {
     setWalkInServiceId(serviceId);
@@ -184,10 +216,15 @@ export default function AdminDashboardView({
       (d) =>
         d.role === 'doctor' &&
         d.is_active &&
-        (!d.assigned_service_ids || d.assigned_service_ids.length === 0 || d.assigned_service_ids.includes(serviceId))
+        d.assigned_service_ids &&
+        d.assigned_service_ids.includes(serviceId)
     );
-    if (matchingDocs.length > 0 && !matchingDocs.some((d) => d.id === walkInDoctorId)) {
+    if (matchingDocs.length > 0) {
       setWalkInDoctorId(matchingDocs[0].id);
+    } else {
+      setWalkInDoctorId('');
+      setWalkInSlots([]);
+      setSelectedWalkInSlot(null);
     }
   };
 
@@ -265,6 +302,10 @@ export default function AdminDashboardView({
     }
     if (!walkInComplaint.trim()) {
       toast.error('Mohon isi keluhan pasien.');
+      return;
+    }
+    if (!walkInDoctorId) {
+      toast.error('Silakan pilih dokter pemeriksa yang bertugas di poliklinik ini.');
       return;
     }
     if (!selectedWalkInSlot || !selectedWalkInSlot.isAvailable) {
@@ -2030,25 +2071,33 @@ export default function AdminDashboardView({
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-medical-text mb-1">Dokter</label>
+                  <label className="block font-semibold text-medical-text mb-1">
+                    Dokter <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={walkInDoctorId}
                     onChange={(e) => setWalkInDoctorId(e.target.value)}
-                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none bg-white font-medium"
+                    required
+                    disabled={availableWalkInDoctors.length === 0}
+                    className="w-full px-2 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none bg-white font-medium disabled:bg-gray-100 disabled:text-gray-400"
                   >
-                    {doctors
-                      .filter((d) => d.role === 'doctor' && d.is_active)
-                      .map((d) => (
+                    {availableWalkInDoctors.length === 0 ? (
+                      <option value="" disabled>
+                        Tidak ada dokter yang bertugas di poli ini
+                      </option>
+                    ) : (
+                      availableWalkInDoctors.map((d) => (
                         <option key={d.id} value={d.id}>
-                          {d.full_name}
+                          {d.full_name} {d.specialization ? `(${d.specialization})` : ''}
                         </option>
-                      ))}
+                      ))
+                    )}
                   </select>
                 </div>
               </div>
 
               {/* Banner Jadwal Praktik Dokter Terpilih */}
-              {selectedWalkInDoctor && (
+              {selectedWalkInDoctor && availableWalkInDoctors.length > 0 && (
                 <div className="p-2.5 rounded-xl bg-medical-subtle/80 border border-medical-primary/20 flex flex-col gap-1 text-[11px]">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-medical-primary flex items-center gap-1.5">
@@ -2074,7 +2123,7 @@ export default function AdminDashboardView({
                   onChange={(e) => setWalkInDate(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none font-medium"
                 />
-                {isWalkInDoctorOff && (
+                {availableWalkInDoctors.length > 0 && isWalkInDoctorOff && (
                   <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div>
@@ -2106,6 +2155,12 @@ export default function AdminDashboardView({
                 {loadingWalkInSlots ? (
                   <div className="py-6 text-center text-xs text-medical-muted bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     Memeriksa ketersediaan slot jadwal dokter...
+                  </div>
+                ) : availableWalkInDoctors.length === 0 ? (
+                  <div className="p-4 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-medical-muted">
+                    <Ban className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                    <p className="font-semibold text-xs text-medical-text">Belum ada dokter yang bertugas di {selectedWalkInService?.name || 'poli ini'}.</p>
+                    <p className="text-[10px] mt-0.5">Silakan pilih poliklinik lain atau atur penugasan dokter di tab Staf & Dokter.</p>
                   </div>
                 ) : isWalkInDoctorOff || walkInSlots.length === 0 ? (
                   <div className="p-4 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-medical-muted">
