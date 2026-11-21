@@ -1980,6 +1980,7 @@ export default function AdminDashboardView({
                   <label className="block font-semibold text-medical-text mb-1">Alamat Email Pasien</label>
                   <input
                     type="email"
+                    required
                     placeholder="pasien@gmail.com"
                     value={walkInEmail}
                     onChange={(e) => setWalkInEmail(e.target.value)}
@@ -2171,6 +2172,7 @@ export default function AdminDashboardView({
                 <label className="block font-semibold text-medical-text mb-1">Keluhan Pasien</label>
                 <input
                   type="text"
+                  required
                   placeholder="Keluhan singkat saat registrasi"
                   value={walkInComplaint}
                   onChange={(e) => setWalkInComplaint(e.target.value)}
