@@ -224,19 +224,31 @@ export async function deleteBlockOutAction(id: string) {
 export async function createWalkInAppointmentAction(data: {
   patient_name: string;
   patient_whatsapp: string;
-  patient_email?: string;
+  patient_email: string;
   service_id: string;
   staff_id: string;
   appointment_date: string;
   start_time: string;
   end_time: string;
-  initial_complaint?: string;
+  initial_complaint: string;
 }) {
   try {
     await verifyAdminSession();
+    if (
+      !data.patient_name?.trim() ||
+      !data.patient_whatsapp?.trim() ||
+      !data.patient_email?.trim() ||
+      !data.initial_complaint?.trim()
+    ) {
+      return {
+        success: false,
+        error: 'Nama pasien, nomor WhatsApp, email, dan keluhan pasien wajib diisi.',
+      };
+    }
     const result = await db.createAppointment({
       ...data,
-      patient_email: data.patient_email?.trim() || null,
+      patient_email: data.patient_email.trim(),
+      initial_complaint: data.initial_complaint.trim(),
       is_walk_in: true,
     });
 

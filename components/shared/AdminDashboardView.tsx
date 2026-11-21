@@ -251,6 +251,22 @@ export default function AdminDashboardView({
   // ----------------------------------------------------------------------------
   const handleWalkInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!walkInName.trim()) {
+      toast.error('Mohon isi nama lengkap pasien.');
+      return;
+    }
+    if (!walkInPhone.trim()) {
+      toast.error('Mohon isi nomor WhatsApp pasien.');
+      return;
+    }
+    if (!walkInEmail.trim() || !walkInEmail.includes('@') || !walkInEmail.includes('.')) {
+      toast.error('Mohon masukkan alamat email pasien yang valid.');
+      return;
+    }
+    if (!walkInComplaint.trim()) {
+      toast.error('Mohon isi keluhan pasien.');
+      return;
+    }
     if (!selectedWalkInSlot || !selectedWalkInSlot.isAvailable) {
       toast.error('Silakan pilih salah satu slot jam praktik yang terbuka (tersedia).');
       return;
@@ -258,15 +274,15 @@ export default function AdminDashboardView({
     setIsSubmittingWalkIn(true);
     try {
       const res = await createWalkInAppointmentAction({
-        patient_name: walkInName,
-        patient_whatsapp: walkInPhone,
-        patient_email: walkInEmail.trim() || undefined,
+        patient_name: walkInName.trim(),
+        patient_whatsapp: walkInPhone.trim(),
+        patient_email: walkInEmail.trim(),
         service_id: walkInServiceId,
         staff_id: walkInDoctorId,
         appointment_date: walkInDate,
         start_time: selectedWalkInSlot.startTime,
         end_time: selectedWalkInSlot.endTime,
-        initial_complaint: walkInComplaint,
+        initial_complaint: walkInComplaint.trim(),
       });
 
       if (res.success && res.appointment) {
@@ -1953,7 +1969,9 @@ export default function AdminDashboardView({
 
             <form onSubmit={handleWalkInSubmit} className="p-5 space-y-4 text-xs overflow-y-auto">
               <div>
-                <label className="block font-semibold text-medical-text mb-1">Nama Pasien *</label>
+                <label className="block font-semibold text-medical-text mb-1">
+                  Nama Pasien <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
@@ -1966,7 +1984,9 @@ export default function AdminDashboardView({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-medical-text mb-1">Nomor WhatsApp *</label>
+                  <label className="block font-semibold text-medical-text mb-1">
+                    Nomor WhatsApp <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     required
@@ -1977,7 +1997,9 @@ export default function AdminDashboardView({
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-medical-text mb-1">Alamat Email Pasien</label>
+                  <label className="block font-semibold text-medical-text mb-1">
+                    Alamat Email Pasien <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="email"
                     required
@@ -1986,6 +2008,9 @@ export default function AdminDashboardView({
                     onChange={(e) => setWalkInEmail(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
                   />
+                  <span className="text-[10px] text-medical-muted mt-0.5 block">
+                    *Bukti booking dan nomor antrean akan dikirim ke email ini.
+                  </span>
                 </div>
               </div>
 
@@ -2169,11 +2194,13 @@ export default function AdminDashboardView({
               </div>
 
               <div>
-                <label className="block font-semibold text-medical-text mb-1">Keluhan Pasien</label>
+                <label className="block font-semibold text-medical-text mb-1">
+                  Keluhan Pasien <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Keluhan singkat saat registrasi"
+                  placeholder="Keluhan singkat saat registrasi di meja faskes"
                   value={walkInComplaint}
                   onChange={(e) => setWalkInComplaint(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-medical-border focus:ring-2 focus:ring-medical-primary outline-none"
