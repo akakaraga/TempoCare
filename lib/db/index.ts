@@ -281,7 +281,7 @@ export const db = {
         let query = supabase.from('staff').select('*').order('full_name');
         if (role) query = query.eq('role', role);
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
+        if (!error && Array.isArray(data)) {
           // Merge Supabase staff dengan local staff (mempertahankan password yang sudah tersimpan di lokal)
           const mergedStaff = (data as Staff[]).map((supaStaff) => {
             const existingLocal = localStaffList.find(
@@ -294,13 +294,7 @@ export const db = {
             };
           });
 
-          const supaIds = new Set(data.map((d: any) => d.id));
-          const supaEmails = new Set(data.map((d: any) => (d.email || '').toLowerCase()));
-          const unsyncedLocal = localStaffList.filter(
-            (l) => !supaIds.has(l.id) && !supaEmails.has((l.email || '').toLowerCase())
-          );
-
-          const finalList = [...mergedStaff, ...unsyncedLocal];
+          const finalList = mergedStaff.length > 0 ? mergedStaff : [defaultAdminStaff];
           if (!role) {
             store.staff = finalList;
             saveLocalStore(store);
@@ -474,27 +468,29 @@ export const db = {
   // 3. SERVICES / POLIKLINIK CRUD
   // ----------------------------------------------------------------------------
   async getServices(activeOnly = false): Promise<Service[]> {
+    const store = loadLocalStore();
+    let list = store.services || [];
+
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
         let query = supabase.from('services').select('*').order('name');
         if (activeOnly) query = query.eq('is_active', true);
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
-          const store = loadLocalStore();
+        if (!error && Array.isArray(data)) {
           if (!activeOnly) {
             store.services = data as Service[];
             saveLocalStore(store);
+            list = store.services;
+          } else {
+            return data as Service[];
           }
-          return data as Service[];
         }
       } catch (err) {
         console.warn('[Supabase getServices]', err);
       }
     }
 
-    const store = loadLocalStore();
-    let list = store.services || [];
     if (activeOnly) list = list.filter((s) => s.is_active);
     return list;
   },
@@ -636,6 +632,21 @@ export const db = {
   async getBlockOuts(staffId?: string, date?: string): Promise<BlockOut[]> {
     const store = loadLocalStore();
     let items = store.block_outs || [];
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.from('block_outs').select('*');
+        if (!error && Array.isArray(data)) {
+          items = data as BlockOut[];
+          store.block_outs = items;
+          saveLocalStore(store);
+        }
+      } catch (err) {
+        console.warn('[Supabase getBlockOuts]', err);
+      }
+    }
+
     if (staffId) items = items.filter((b) => b.staff_id === staffId);
     if (date) items = items.filter((b) => b.block_date === date);
 
@@ -713,11 +724,13 @@ export const db = {
           .order('appointment_date')
           .order('start_time');
 
-        if (!error && data && data.length > 0) {
-          // Merge Supabase data dengan local store (menghindari data hilang jika salah satu layer tertinggal)
-          const localIds = new Set(allAppointments.map((a) => a.id));
-          const newFromSupabase = (data as Appointment[]).filter((d) => !localIds.has(d.id));
-          allAppointments = [...allAppointments, ...newFromSupabase];
+        if (!error && Array.isArray(data)) {
+          // Supabase adalah sumber data utama (Single Source of Truth).
+          // Sinkronkan ke local store sehingga jika data dihapus langsung di Supabase,
+          // data lokal otomatis ikut terhapus dan slot kembali terbuka/tersedia.
+          allAppointments = data as Appointment[];
+          store.appointments = allAppointments;
+          saveLocalStore(store);
         }
       } catch (err) {
         console.warn('[Supabase getAppointments]', err);
