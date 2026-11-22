@@ -726,9 +726,37 @@ export const db = {
 
         if (!error && Array.isArray(data)) {
           // Supabase adalah sumber data utama (Single Source of Truth).
-          // Sinkronkan ke local store sehingga jika data dihapus langsung di Supabase,
-          // data lokal otomatis ikut terhapus dan slot kembali terbuka/tersedia.
-          allAppointments = data as Appointment[];
+          // Sinkronkan ke local store, sambil mempertahankan field lokal (seperti final_fee)
+          // jika tabel Supabase belum menambahkan kolom final_fee.
+          const localMap = new Map((store.appointments || []).map((a) => [a.id, a]));
+          allAppointments = data.map((remote: any) => {
+            const local = localMap.get(remote.id);
+            let finalFee: number | null = null;
+            if (remote.final_fee !== undefined && remote.final_fee !== null) {
+              finalFee = Number(remote.final_fee);
+            } else if (local?.final_fee !== undefined && local?.final_fee !== null) {
+              finalFee = Number(local.final_fee);
+            }
+
+            // Ekstrak tag biaya jika disematkan dalam medical_notes sebagai fallback Supabase
+            let cleanNotes = remote.medical_notes ?? local?.medical_notes ?? '';
+            if (cleanNotes) {
+              const feeMatch = cleanNotes.match(/<!--FEE:(\d+(?:\.\d+)?)-->/);
+              if (feeMatch) {
+                if (finalFee === null) {
+                  finalFee = Number(feeMatch[1]);
+                }
+                cleanNotes = cleanNotes.replace(/<!--FEE:\d+(?:\.\d+)?-->\s*/, '');
+              }
+            }
+
+            return {
+              ...local,
+              ...remote,
+              medical_notes: cleanNotes,
+              final_fee: finalFee,
+            } as Appointment;
+          });
           store.appointments = allAppointments;
           saveLocalStore(store);
         }
@@ -1151,12 +1179,19 @@ export const db = {
           .update(updatePayload)
           .eq('id', appointmentId);
 
-        if (error && error.message?.includes('final_fee')) {
-          // Fallback if final_fee column has not yet been added to Supabase table
+        if (error) {
+          // Fallback jika kolom final_fee belum ditambahkan di tabel Supabase:
+          // Simpan biaya ke dalam tag metadata di medical_notes agar Supabase tetap menyimpannya secara permanen
+          const cleanNotes = notes.replace(/<!--FEE:\d+(?:\.\d+)?-->\s*/, '');
+          const notesWithFee =
+            resolvedFee !== undefined && resolvedFee !== null
+              ? `<!--FEE:${resolvedFee}-->${cleanNotes}`
+              : cleanNotes;
+
           await supabase
             .from('appointments')
             .update({
-              medical_notes: notes,
+              medical_notes: notesWithFee,
               status,
             })
             .eq('id', appointmentId);
@@ -1194,9 +1229,22 @@ export const db = {
     if (supabase) {
       try {
         const { error } = await supabase.from('appointments').update(updates).eq('id', id);
-        if (error && error.message?.includes('final_fee')) {
+        if (error) {
           const { final_fee, ...safeUpdates } = updates;
-          await supabase.from('appointments').update(safeUpdates).eq('id', id);
+          const currentNotes = updates.medical_notes ?? store.appointments[index].medical_notes ?? '';
+          const cleanNotes = currentNotes.replace(/<!--FEE:\d+(?:\.\d+)?-->\s*/, '');
+          const notesWithFee =
+            final_fee !== undefined && final_fee !== null
+              ? `<!--FEE:${final_fee}-->${cleanNotes}`
+              : cleanNotes;
+
+          await supabase
+            .from('appointments')
+            .update({
+              ...safeUpdates,
+              medical_notes: notesWithFee,
+            })
+            .eq('id', id);
         }
       } catch (err) {
         console.warn('[Supabase adminUpdateAppointment]', err);

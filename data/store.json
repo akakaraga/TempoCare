@@ -130,7 +130,8 @@
       "reschedule_token": "e79b7c50-d01f-443a-8fb6-e243088cdbca",
       "token_expires_at": "2026-11-22T07:30:00+00:00",
       "is_walk_in": false,
-      "created_at": "2026-11-22T06:24:15.759+00:00"
+      "created_at": "2026-11-22T06:24:15.759+00:00",
+      "final_fee": 260000
     }
   ],
   "block_outs": []
