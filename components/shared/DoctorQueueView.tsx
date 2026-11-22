@@ -507,7 +507,7 @@ export default function DoctorQueueView({
           <div className="px-6 py-4 border-b border-medical-border flex items-center justify-between bg-medical-subtle/30">
             <div>
               <h3 className="text-base font-bold text-medical-text">
-                Daftar Antrean Pasien Dokter ({filteredList.length} Jadwal)
+                Daftar Antrean Pasien Dokter
               </h3>
               <p className="text-xs text-medical-muted mt-0.5">
                 {viewMode === 'all'
@@ -520,7 +520,7 @@ export default function DoctorQueueView({
               </p>
             </div>
             <span className="text-xs font-semibold text-medical-muted bg-white px-2.5 py-1 rounded-lg border border-medical-border">
-              Total Database: {appointments.length} Pasien
+              Total: {appointments.length} Pasien
             </span>
           </div>
 
