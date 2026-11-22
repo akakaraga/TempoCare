@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS appointments (
   status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
   initial_complaint TEXT,
   medical_notes TEXT,
+  final_fee NUMERIC(12, 2) DEFAULT NULL,
   queue_number VARCHAR(50),
   reschedule_token UUID UNIQUE DEFAULT gen_random_uuid(),
   token_expires_at TIMESTAMPTZ,

@@ -1115,7 +1115,8 @@ export const db = {
   async updateMedicalNotes(
     appointmentId: string,
     notes: string,
-    status: 'completed' | 'cancelled' | 'confirmed'
+    status: 'completed' | 'cancelled' | 'confirmed',
+    finalFee?: number | null
   ): Promise<{ success: boolean; error?: string }> {
     const store = loadLocalStore();
     const index = (store.appointments || []).findIndex((a) => a.id === appointmentId);
@@ -1123,23 +1124,43 @@ export const db = {
       return { success: false, error: 'Janji temu tidak ditemukan' };
     }
 
+    const currentApt = store.appointments[index];
+    const resolvedFee = finalFee !== undefined ? finalFee : (currentApt.final_fee ?? null);
+
     store.appointments[index] = {
-      ...store.appointments[index],
+      ...currentApt,
       medical_notes: notes,
       status,
+      final_fee: resolvedFee,
     };
     saveLocalStore(store);
 
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase
+        const updatePayload: Record<string, any> = {
+          medical_notes: notes,
+          status,
+        };
+        if (resolvedFee !== undefined && resolvedFee !== null) {
+          updatePayload.final_fee = resolvedFee;
+        }
+
+        const { error } = await supabase
           .from('appointments')
-          .update({
-            medical_notes: notes,
-            status,
-          })
+          .update(updatePayload)
           .eq('id', appointmentId);
+
+        if (error && error.message?.includes('final_fee')) {
+          // Fallback if final_fee column has not yet been added to Supabase table
+          await supabase
+            .from('appointments')
+            .update({
+              medical_notes: notes,
+              status,
+            })
+            .eq('id', appointmentId);
+        }
       } catch (err) {
         console.warn('[Supabase updateMedicalNotes]', err);
       }
@@ -1155,6 +1176,8 @@ export const db = {
       appointment_date?: string;
       start_time?: string;
       end_time?: string;
+      final_fee?: number | null;
+      medical_notes?: string | null;
     }
   ): Promise<{ success: boolean; appointment?: Appointment; error?: string }> {
     const store = loadLocalStore();
@@ -1170,7 +1193,11 @@ export const db = {
     const supabase = getSupabaseClient();
     if (supabase) {
       try {
-        await supabase.from('appointments').update(updates).eq('id', id);
+        const { error } = await supabase.from('appointments').update(updates).eq('id', id);
+        if (error && error.message?.includes('final_fee')) {
+          const { final_fee, ...safeUpdates } = updates;
+          await supabase.from('appointments').update(safeUpdates).eq('id', id);
+        }
       } catch (err) {
         console.warn('[Supabase adminUpdateAppointment]', err);
       }

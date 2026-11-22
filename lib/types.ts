@@ -61,6 +61,7 @@ export interface Appointment {
   status: AppointmentStatus;
   initial_complaint?: string | null;
   medical_notes?: string | null;
+  final_fee?: number | null; // Biaya aktual setelah tindakan/pemeriksaan dokter
   queue_number?: string | null;
   reschedule_token: string;
   token_expires_at?: string | null;
