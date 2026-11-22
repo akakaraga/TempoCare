@@ -301,7 +301,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                               <Stethoscope className="w-6 h-6" />
                             </div>
                             <span className="text-xs sm:text-sm font-bold text-medical-primary bg-white px-3 py-1.5 rounded-xl border border-medical-border shadow-2xs">
-                              {formatRupiah(service.price)}
+                              Mulai {formatRupiah(service.price)}
                             </span>
                           </div>
 
@@ -596,9 +596,12 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
               {/* Ringkasan Janji Temu */}
               <div className="bg-medical-subtle/60 p-5 rounded-2xl border border-medical-primary/20 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 <div>
-                  <span className="text-medical-muted block text-[11px]">Poli & Biaya:</span>
+                  <span className="text-medical-muted block text-[11px]">Poli & Estimasi Biaya:</span>
                   <span className="font-bold text-medical-text text-sm block mt-0.5">{selectedService?.name}</span>
-                  <span className="text-medical-primary font-bold">{formatRupiah(selectedService?.price || 0)}</span>
+                  <span className="text-medical-primary font-bold">Mulai {formatRupiah(selectedService?.price || 0)}</span>
+                  <span className="text-[10px] text-medical-muted block mt-0.5 leading-tight">
+                    *Biaya akhir disesuaikan setelah pemeriksaan dokter
+                  </span>
                 </div>
                 <div>
                   <span className="text-medical-muted block text-[11px]">Dokter Pemeriksa:</span>
@@ -786,6 +789,13 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   <span className="font-bold text-medical-primary">
                     {confirmedBooking.appointment_date} • {confirmedBooking.start_time} - {confirmedBooking.end_time} WIB
                   </span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-gray-200/60">
+                  <span className="text-medical-muted">Estimasi Tarif:</span>
+                  <div className="text-right">
+                    <span className="font-bold text-medical-text">Mulai {formatRupiah(confirmedBooking.service?.price || 0)}</span>
+                    <span className="text-[10px] text-gray-500 block">*Biaya final disesuaikan setelah pemeriksaan dokter</span>
+                  </div>
                 </div>
               </div>
 

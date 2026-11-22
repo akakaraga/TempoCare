@@ -22,6 +22,7 @@ import {
   RotateCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatRupiah } from '@/lib/utils';
 import ReportPanel from './ReportPanel';
 
 interface DoctorQueueViewProps {
@@ -54,9 +55,10 @@ export default function DoctorQueueView({
     setAppointments(initialAppointments);
   }, [initialAppointments]);
 
-  // Medical notes modal state
+  // Medical notes & examination fee modal state
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [notesInput, setNotesInput] = useState<string>('');
+  const [feeInput, setFeeInput] = useState<string>('');
   const [savingNotes, setSavingNotes] = useState<boolean>(false);
 
   const todayStr = selectedDate || new Date().toISOString().split('T')[0];
@@ -100,14 +102,23 @@ export default function DoctorQueueView({
   const handleOpenNotes = (apt: Appointment) => {
     setEditingAppointment(apt);
     setNotesInput(apt.medical_notes || '');
+    const currentFee =
+      apt.final_fee !== undefined && apt.final_fee !== null
+        ? apt.final_fee
+        : (apt.service?.price ?? 0);
+    setFeeInput(currentFee > 0 ? String(currentFee) : '');
   };
 
   const handleQuickComplete = async (apt: Appointment) => {
     try {
-      const res = await updateMedicalNotesAction(apt.id, apt.medical_notes || '', 'completed');
+      const currentFee =
+        apt.final_fee !== undefined && apt.final_fee !== null
+          ? apt.final_fee
+          : (apt.service?.price ?? null);
+      const res = await updateMedicalNotesAction(apt.id, apt.medical_notes || '', 'completed', currentFee);
       if (res.success) {
         setAppointments((prev) =>
-          prev.map((a) => (a.id === apt.id ? { ...a, status: 'completed' } : a))
+          prev.map((a) => (a.id === apt.id ? { ...a, status: 'completed', final_fee: currentFee } : a))
         );
         toast.success(`Pemeriksaan ${apt.patient_name} selesai!`);
       } else {
@@ -123,19 +134,20 @@ export default function DoctorQueueView({
 
     setSavingNotes(true);
     try {
-      const res = await updateMedicalNotesAction(editingAppointment.id, notesInput, newStatus);
+      const parsedFee = feeInput.trim() !== '' ? Number(feeInput) : null;
+      const res = await updateMedicalNotesAction(editingAppointment.id, notesInput, newStatus, parsedFee);
       if (res.success) {
         setAppointments((prev) =>
           prev.map((a) =>
             a.id === editingAppointment.id
-              ? { ...a, medical_notes: notesInput, status: newStatus }
+              ? { ...a, medical_notes: notesInput, status: newStatus, final_fee: parsedFee }
               : a
           )
         );
         toast.success(
           newStatus === 'completed'
             ? notesInput.trim()
-              ? 'Konsultasi selesai & catatan medis tersimpan!'
+              ? 'Konsultasi selesai & rekam medis tersimpan!'
               : 'Konsultasi selesai!'
             : 'Status janji temu diperbarui'
         );
@@ -588,6 +600,15 @@ export default function DoctorQueueView({
                             {apt.staff.full_name}
                           </span>
                         )}
+                        {apt.status === 'completed' ? (
+                          <span className="block text-[11px] font-bold text-emerald-700 mt-0.5">
+                            Biaya: {formatRupiah(apt.final_fee !== undefined && apt.final_fee !== null ? apt.final_fee : (apt.service?.price || 0))}
+                          </span>
+                        ) : (
+                          <span className="block text-[10px] text-medical-muted mt-0.5">
+                            Est: {formatRupiah(apt.service?.price || 0)}
+                          </span>
+                        )}
                       </td>
                       <td
                         className="py-3.5 px-4 max-w-xs text-medical-muted truncate"
@@ -680,6 +701,35 @@ export default function DoctorQueueView({
                 <span className="text-medical-muted block">Keluhan Awal Pasien:</span>
                 <p className="font-medium text-medical-text">
                   {editingAppointment.initial_complaint || 'Tidak ada catatan keluhan awal.'}
+                </p>
+              </div>
+
+              {/* Input Biaya Pemeriksaan / Tindakan */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-medical-text">
+                    Total Biaya Pemeriksaan & Tindakan:
+                  </label>
+                  <span className="text-[11px] font-medium text-medical-primary bg-medical-subtle px-2 py-0.5 rounded-full">
+                    Sesuai Hasil Pemeriksaan
+                  </span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-xs font-bold text-medical-muted">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder={`Contoh: ${editingAppointment.service?.price || 150000}`}
+                    value={feeInput}
+                    onChange={(e) => setFeeInput(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs font-mono font-bold text-medical-text border border-medical-border rounded-xl focus:ring-2 focus:ring-medical-primary outline-none"
+                  />
+                </div>
+                <p className="text-[10px] text-medical-muted mt-1 leading-relaxed">
+                  *Tarif dasar poliklinik: <strong>{formatRupiah(editingAppointment.service?.price || 0)}</strong>. Biaya dapat diubah bebas menyesuaikan tindakan medis, resep obat, atau keringanan.
                 </p>
               </div>
 

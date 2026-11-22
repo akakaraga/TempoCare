@@ -887,7 +887,16 @@ export default function AdminDashboardView({
                             {apt.staff?.full_name}
                           </td>
                           <td className="py-3 px-4 text-medical-muted">
-                            {apt.service?.name}
+                            <span className="font-medium text-medical-text block">{apt.service?.name}</span>
+                            {apt.status === 'completed' ? (
+                              <span className="text-[10px] font-bold text-emerald-700 block">
+                                Biaya: {formatRupiah(apt.final_fee !== undefined && apt.final_fee !== null ? apt.final_fee : (apt.service?.price || 0))}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 block">
+                                Est: {formatRupiah(apt.service?.price || 0)}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <span
@@ -2510,6 +2519,15 @@ export default function AdminDashboardView({
                         : viewingNotesAppointment.status === 'confirmed'
                         ? 'Menunggu'
                         : 'Batal'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-medical-muted block">Biaya Layanan:</span>
+                    <span className="font-bold text-medical-primary text-xs block">
+                      {formatRupiah(viewingNotesAppointment.final_fee !== undefined && viewingNotesAppointment.final_fee !== null ? viewingNotesAppointment.final_fee : (viewingNotesAppointment.service?.price || 0))}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      {viewingNotesAppointment.final_fee !== undefined && viewingNotesAppointment.final_fee !== null ? '(Hasil Pemeriksaan Dokter)' : '(Estimasi Tarif Dasar)'}
                     </span>
                   </div>
                 </div>
