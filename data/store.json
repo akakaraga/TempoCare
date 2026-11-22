@@ -112,6 +112,26 @@
       "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2"
     }
   ],
-  "appointments": [],
+  "appointments": [
+    {
+      "id": "9eb2429a-298f-4201-ac08-78a8de8f6f4c",
+      "patient_name": "A",
+      "patient_whatsapp": "-",
+      "patient_email": "a@gmail.com",
+      "service_id": "8c22e2ec-5711-4be0-8b54-3762706c70e2",
+      "staff_id": "32f1761e-ca6b-48ed-b7f9-dc91fdd4983b",
+      "appointment_date": "2026-11-23",
+      "start_time": "14:30:00",
+      "end_time": "15:00:00",
+      "status": "completed",
+      "initial_complaint": "Gigi berlubang",
+      "medical_notes": "",
+      "queue_number": "G-002",
+      "reschedule_token": "e79b7c50-d01f-443a-8fb6-e243088cdbca",
+      "token_expires_at": "2026-11-22T07:30:00+00:00",
+      "is_walk_in": false,
+      "created_at": "2026-11-22T06:24:15.759+00:00"
+    }
+  ],
   "block_outs": []
 }

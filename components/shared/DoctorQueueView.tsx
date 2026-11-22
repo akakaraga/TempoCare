@@ -102,6 +102,22 @@ export default function DoctorQueueView({
     setNotesInput(apt.medical_notes || '');
   };
 
+  const handleQuickComplete = async (apt: Appointment) => {
+    try {
+      const res = await updateMedicalNotesAction(apt.id, apt.medical_notes || '', 'completed');
+      if (res.success) {
+        setAppointments((prev) =>
+          prev.map((a) => (a.id === apt.id ? { ...a, status: 'completed' } : a))
+        );
+        toast.success(`Pemeriksaan ${apt.patient_name} selesai!`);
+      } else {
+        toast.error(res.error || 'Gagal memperbarui status');
+      }
+    } catch {
+      toast.error('Terjadi gangguan jaringan');
+    }
+  };
+
   const handleSaveNotes = async (newStatus: 'completed' | 'confirmed' | 'cancelled') => {
     if (!editingAppointment) return;
 
@@ -118,7 +134,9 @@ export default function DoctorQueueView({
         );
         toast.success(
           newStatus === 'completed'
-            ? 'Konsultasi selesai & rekam medis tersimpan!'
+            ? notesInput.trim()
+              ? 'Konsultasi selesai & catatan medis tersimpan!'
+              : 'Konsultasi selesai!'
             : 'Status janji temu diperbarui'
         );
         setEditingAppointment(null);
@@ -595,14 +613,29 @@ export default function DoctorQueueView({
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenNotes(apt)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-medical-primary text-white hover:bg-medical-primaryDark transition-colors shadow-xs cursor-pointer"
-                        >
-                          <FileEdit className="w-3.5 h-3.5" />
-                          {apt.medical_notes ? 'Lihat/Edit Catatan' : 'Periksa & Catat'}
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenNotes(apt)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-medical-border text-medical-text hover:bg-medical-subtle/50 transition-colors shadow-xs cursor-pointer"
+                            title={apt.medical_notes ? 'Lihat / Edit Catatan Medis' : 'Beri Catatan Medis (Opsional)'}
+                          >
+                            <FileEdit className="w-3.5 h-3.5 text-medical-primary" />
+                            {apt.medical_notes ? 'Lihat/Edit Catatan' : 'Catatan'}
+                          </button>
+
+                          {apt.status !== 'completed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickComplete(apt)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs cursor-pointer"
+                              title="Tandai Selesai Pemeriksaan (tanpa/dengan catatan)"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Selesai</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -651,13 +684,17 @@ export default function DoctorQueueView({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-medical-text mb-1">
-                  Catatan Pemeriksaan Medis / Diagnosis Singkat / Resep:
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-medical-text">
+                    Catatan Pemeriksaan Medis / Diagnosis Singkat / Resep:
+                  </label>
+                  <span className="text-[11px] font-medium text-medical-muted bg-gray-100 px-2 py-0.5 rounded">
+                    Opsional
+                  </span>
+                </div>
                 <textarea
                   rows={4}
-                  required
-                  placeholder="Contoh: Tekanan darah 120/80 mmHg, diagnosis faringitis akut, terapi amoxicillin 3x500mg dan edukasi istirahat cukup."
+                  placeholder="Opsional - Masukkan catatan pemeriksaan, diagnosis, atau resep bila ada..."
                   value={notesInput}
                   onChange={(e) => setNotesInput(e.target.value)}
                   className="w-full p-3 text-xs border border-medical-border rounded-xl focus:ring-2 focus:ring-medical-primary outline-none text-medical-text"
@@ -687,7 +724,7 @@ export default function DoctorQueueView({
 
                   <button
                     type="button"
-                    disabled={savingNotes || !notesInput.trim()}
+                    disabled={savingNotes}
                     onClick={() => handleSaveNotes('completed')}
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
                   >
