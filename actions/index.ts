@@ -173,17 +173,19 @@ export async function cancelAppointmentAction(token: string) {
 export async function updateMedicalNotesAction(
   appointmentId: string,
   notes: string,
-  status: 'completed' | 'cancelled' | 'confirmed'
+  status: 'completed' | 'cancelled' | 'confirmed',
+  finalFee?: number | null
 ) {
   try {
     await verifyStaffSession();
-    const result = await db.updateMedicalNotes(appointmentId, notes, status);
+    const result = await db.updateMedicalNotes(appointmentId, notes, status, finalFee);
     if (!result.success) {
       return { success: false, error: result.error };
     }
 
     revalidatePath('/dashboard/doctor');
     revalidatePath('/dashboard/admin');
+    revalidatePath('/manage-appointment');
 
     return { success: true };
   } catch (err: any) {
@@ -403,6 +405,8 @@ export async function adminUpdateAppointmentAction(
     appointment_date?: string;
     start_time?: string;
     end_time?: string;
+    final_fee?: number | null;
+    medical_notes?: string | null;
   }
 ) {
   try {
