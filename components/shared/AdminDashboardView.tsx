@@ -616,7 +616,7 @@ export default function AdminDashboardView({
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-semibold text-medical-primary bg-medical-subtle/80 hover:bg-medical-subtle border border-medical-primary/20 transition-all whitespace-nowrap cursor-pointer"
             >
               <RotateCw className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Segarkan</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
 
             <button

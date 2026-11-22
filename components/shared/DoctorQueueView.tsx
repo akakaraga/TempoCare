@@ -203,7 +203,7 @@ export default function DoctorQueueView({
               }}
               className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-medical-primary bg-medical-subtle/80 hover:bg-medical-subtle border border-medical-primary/20 transition-colors cursor-pointer whitespace-nowrap"
             >
-              <RotateCw className="w-3.5 h-3.5" /> Segarkan
+              <RotateCw className="w-3.5 h-3.5" /> Refresh
             </button>
             <form action={logoutAction}>
               <button
