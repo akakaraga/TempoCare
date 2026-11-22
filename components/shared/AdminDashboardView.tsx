@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Appointment, Staff, Service, BlockOut, ClinicSettings, TimeSlot } from '@/lib/types';
 import {
   createWalkInAppointmentAction,
@@ -48,7 +49,8 @@ import {
   ClipboardList,
   Copy,
   Printer,
-  BarChart3
+  BarChart3,
+  RotateCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ReportPanel from './ReportPanel';
@@ -71,6 +73,7 @@ export default function AdminDashboardView({
   blockOuts: initialBlockOuts,
   clinicSettings: initialSettings,
 }: AdminDashboardViewProps) {
+  const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [blockOuts, setBlockOuts] = useState<BlockOut[]>(initialBlockOuts);
   const [doctors, setDoctors] = useState<Staff[]>(staffList);
@@ -603,11 +606,23 @@ export default function AdminDashboardView({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                router.refresh();
+                toast.success('Data dashboard diperbarui');
+              }}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-semibold text-medical-primary bg-medical-subtle/80 hover:bg-medical-subtle border border-medical-primary/20 transition-all whitespace-nowrap cursor-pointer"
+            >
+              <RotateCw className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Segarkan</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowWalkInModal(true)}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-xs whitespace-nowrap"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold bg-medical-primary text-white hover:bg-medical-primaryDark transition-all shadow-xs whitespace-nowrap cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5 shrink-0" />
               <span className="sm:hidden">Walk-in</span>
@@ -617,7 +632,7 @@ export default function AdminDashboardView({
             <form action={logoutAction}>
               <button
                 type="submit"
-                className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 sm:px-3 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 sm:px-3 rounded-xl text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors whitespace-nowrap cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5 shrink-0" /> Keluar
               </button>

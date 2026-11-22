@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Appointment, Service, Staff } from '@/lib/types';
 import { updateMedicalNotesAction } from '@/actions';
 import { logoutAction } from '@/actions/auth';
@@ -17,7 +18,8 @@ import {
   CalendarDays,
   ListFilter,
   BarChart3,
-  ClipboardList
+  ClipboardList,
+  RotateCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ReportPanel from './ReportPanel';
@@ -39,11 +41,18 @@ export default function DoctorQueueView({
   staffList = [],
   clinicName = 'TempoCare',
 }: DoctorQueueViewProps) {
+  const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
   const [activeTab, setActiveTab] = useState<'queue' | 'reports'>('queue');
   const [viewMode, setViewMode] = useState<'today' | 'upcoming' | 'all' | 'custom'>('all');
   const [customDate, setCustomDate] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [doctorFilter, setDoctorFilter] = useState<string>('all');
+
+  // Sinkronisasi otomatis setiap data dari server diperbarui
+  useEffect(() => {
+    setAppointments(initialAppointments);
+  }, [initialAppointments]);
 
   // Medical notes modal state
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -65,7 +74,7 @@ export default function DoctorQueueView({
   );
   const upcomingCount = upcomingAppointments.length;
 
-  // Filter list based on view mode and status
+  // Filter list based on view mode, status, and doctor
   const filteredList = appointments.filter((a) => {
     // 1. Date match
     let matchDate = true;
@@ -82,7 +91,10 @@ export default function DoctorQueueView({
     // 2. Status match
     const matchStatus = statusFilter === 'all' || a.status === statusFilter;
 
-    return matchDate && matchStatus;
+    // 3. Doctor match (untuk peran non-dokter: perawat, resepsionis, admin)
+    const matchDoctor = doctor.role === 'doctor' || doctorFilter === 'all' || a.staff_id === doctorFilter;
+
+    return matchDate && matchStatus && matchDoctor;
   });
 
   const handleOpenNotes = (apt: Appointment) => {
@@ -164,7 +176,17 @@ export default function DoctorQueueView({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                router.refresh();
+                toast.success('Data jadwal antrean diperbarui');
+              }}
+              className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-medical-primary bg-medical-subtle/80 hover:bg-medical-subtle border border-medical-primary/20 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <RotateCw className="w-3.5 h-3.5" /> Segarkan
+            </button>
             <form action={logoutAction}>
               <button
                 type="submit"
@@ -425,6 +447,28 @@ export default function DoctorQueueView({
                 </button>
               ))}
             </div>
+
+            {doctor.role !== 'doctor' && (
+              <div className="flex items-center gap-1.5 border-l border-gray-200 pl-3">
+                <span className="text-xs font-semibold text-medical-muted flex items-center gap-1">
+                  <Stethoscope className="w-3.5 h-3.5 text-medical-primary" /> Dokter:
+                </span>
+                <select
+                  value={doctorFilter}
+                  onChange={(e) => setDoctorFilter(e.target.value)}
+                  className="px-2 py-1 rounded-lg border border-medical-border text-xs font-semibold text-medical-text focus:ring-2 focus:ring-medical-primary outline-none bg-white"
+                >
+                  <option value="all">Semua Dokter ({appointments.length})</option>
+                  {staffList
+                    .filter((s) => s.role === 'doctor' && s.is_active)
+                    .map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.full_name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -520,7 +564,12 @@ export default function DoctorQueueView({
                         )}
                       </td>
                       <td className="py-3.5 px-4 font-medium text-medical-text">
-                        {apt.service?.name || 'Poliklinik'}
+                        <span>{apt.service?.name || 'Poliklinik'}</span>
+                        {doctor.role !== 'doctor' && apt.staff && (
+                          <span className="block text-[11px] text-medical-primary font-semibold mt-0.5">
+                            {apt.staff.full_name}
+                          </span>
+                        )}
                       </td>
                       <td
                         className="py-3.5 px-4 max-w-xs text-medical-muted truncate"
