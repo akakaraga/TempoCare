@@ -802,30 +802,50 @@ export default function AdminDashboardView({
                 </h3>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50/80 text-medical-muted uppercase tracking-wider text-[11px] border-b border-gray-100">
-                    <tr>
-                      <th className="py-3 px-4">No. Antrean</th>
-                      <th className="py-3 px-4">Tanggal & Jam</th>
-                      <th className="py-3 px-4">Nama Pasien</th>
-                      <th className="py-3 px-4">WhatsApp</th>
-                      <th className="py-3 px-4">Email</th>
-                      <th className="py-3 px-4">Dokter Bertugas</th>
-                      <th className="py-3 px-4">Layanan</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Aksi Admin</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredAppointments.length === 0 ? (
+              {filteredAppointments.length === 0 ? (
+                <div className="p-12 text-center text-medical-muted space-y-3">
+                  <CalendarIcon className="w-10 h-10 text-gray-300 mx-auto" />
+                  <div>
+                    <p className="text-sm font-semibold text-medical-text">
+                      Tidak ada jadwal pasien pada filter saat ini.
+                    </p>
+                    <p className="text-xs text-medical-muted mt-1">
+                      Pasien yang mendaftar online atau walk-in dari admin akan otomatis tampil di sini.
+                    </p>
+                  </div>
+                  {(searchTerm || selectedDoctorFilter !== 'all' || selectedDateFilter || statusFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setSelectedDoctorFilter('all');
+                        setSelectedDateFilter('');
+                        setStatusFilter('all');
+                      }}
+                      className="px-4 py-2 bg-medical-subtle text-medical-primary hover:bg-medical-subtle/80 text-xs font-bold rounded-xl transition-colors cursor-pointer mt-2"
+                    >
+                      Reset Filter Pencarian
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-gray-50/80 text-medical-muted uppercase tracking-wider text-[11px] border-b border-gray-100">
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-medical-muted">
-                          Tidak ada data janji temu yang cocok dengan filter.
-                        </td>
+                        <th className="py-3 px-4">No. Antrean</th>
+                        <th className="py-3 px-4">Tanggal & Jam</th>
+                        <th className="py-3 px-4">Nama Pasien</th>
+                        <th className="py-3 px-4">WhatsApp</th>
+                        <th className="py-3 px-4">Email</th>
+                        <th className="py-3 px-4">Dokter Bertugas</th>
+                        <th className="py-3 px-4">Layanan</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Aksi Admin</th>
                       </tr>
-                    ) : (
-                      filteredAppointments.map((apt) => (
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredAppointments.map((apt) => (
                         <tr key={apt.id} className="hover:bg-medical-subtle/20 transition-colors">
                           <td className="py-3 px-4 font-mono font-bold text-medical-primary text-sm">
                             {apt.queue_number || 'A-001'}
@@ -931,11 +951,11 @@ export default function AdminDashboardView({
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
