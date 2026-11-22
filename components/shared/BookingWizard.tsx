@@ -599,9 +599,6 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   <span className="text-medical-muted block text-[11px]">Poli & Estimasi Biaya:</span>
                   <span className="font-bold text-medical-text text-sm block mt-0.5">{selectedService?.name}</span>
                   <span className="text-medical-primary font-bold">Mulai {formatRupiah(selectedService?.price || 0)}</span>
-                  <span className="text-[10px] text-medical-muted block mt-0.5 leading-tight">
-                    *Biaya akhir disesuaikan setelah pemeriksaan dokter
-                  </span>
                 </div>
                 <div>
                   <span className="text-medical-muted block text-[11px]">Dokter Pemeriksa:</span>
@@ -679,7 +676,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
 
                 <div>
                   <label className="text-xs font-bold text-medical-text block mb-1">
-                    Konsultasi Apa?
+                    Konsultasi Apa? <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <FileText className="w-4 h-4 text-medical-muted absolute left-3.5 top-3" />
@@ -794,7 +791,6 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   <span className="text-medical-muted">Estimasi Tarif:</span>
                   <div className="text-right">
                     <span className="font-bold text-medical-text">Mulai {formatRupiah(confirmedBooking.service?.price || 0)}</span>
-                    <span className="text-[10px] text-gray-500 block">*Biaya final disesuaikan setelah pemeriksaan dokter</span>
                   </div>
                 </div>
               </div>
@@ -888,7 +884,7 @@ export default function BookingWizard({ services, staffList }: BookingWizardProp
                   </button>
                 </div>
                 <p className="text-[11px] text-medical-muted leading-relaxed">
-                  *Simpan tautan ini. Jika nanti berhalangan datang, Anda bisa klik tautan ini untuk pindah hari atau membatalkan tanpa perlu repot menelepon klinik.
+                  *Simpan tautan ini. Jika nanti berhalangan datang, Anda bisa klik tautan ini untuk pindah hari atau membatalkan tanpa perlu datang ke klinik.
                 </p>
               </div>
 
