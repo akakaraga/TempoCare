@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { formatRupiah } from '@/lib/utils';
 
 interface ManageAppointmentViewProps {
   initialAppointments?: Appointment[];
@@ -660,6 +661,38 @@ export default function ManageAppointmentView({
                 </span>
                 <span className="font-bold text-medical-text text-sm block">
                   {appointment.start_time} - {appointment.end_time} WIB
+                </span>
+              </div>
+            </div>
+
+            {/* Status Biaya & Pembayaran */}
+            <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
+              appointment.status === 'completed'
+                ? 'bg-emerald-50/80 border-emerald-200'
+                : 'bg-medical-subtle/40 border-medical-primary/20'
+            }`}>
+              <div className="space-y-0.5">
+                <span className={`font-bold block text-xs ${
+                  appointment.status === 'completed' ? 'text-emerald-900' : 'text-medical-text'
+                }`}>
+                  {appointment.status === 'completed' ? 'Total Biaya Pemeriksaan & Tindakan' : 'Estimasi Tarif Pelayanan'}
+                </span>
+                <p className="text-[11px] text-gray-500">
+                  {appointment.status === 'completed'
+                    ? '*Biaya telah disesuaikan oleh dokter berdasarkan hasil pemeriksaan dan tindakan.'
+                    : '*Biaya final akan disesuaikan setelah pemeriksaan dokter sesuai tindakan atau resep yang diberikan.'}
+                </p>
+              </div>
+              <div className="text-left sm:text-right shrink-0">
+                <span className={`font-mono font-extrabold text-base block ${
+                  appointment.status === 'completed' ? 'text-emerald-800' : 'text-medical-primary'
+                }`}>
+                  {appointment.status === 'completed'
+                    ? formatRupiah(appointment.final_fee !== undefined && appointment.final_fee !== null ? appointment.final_fee : (appointment.service?.price || 0))
+                    : `Mulai ${formatRupiah(appointment.service?.price || 0)}`}
+                </span>
+                <span className="text-[10px] text-gray-400 block font-medium">
+                  {appointment.status === 'completed' ? 'Tarif Pasca-Pemeriksaan' : 'Tarif Dasar Poliklinik'}
                 </span>
               </div>
             </div>

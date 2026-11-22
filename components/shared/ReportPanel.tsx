@@ -211,8 +211,9 @@ export default function ReportPanel({
     searchQuery,
   ]);
 
-  // Helper to resolve price
+  // Helper to resolve price (prioritaskan tarif final hasil pemeriksaan dokter)
   const getServicePrice = (apt: Appointment): number => {
+    if (apt.final_fee !== undefined && apt.final_fee !== null) return Number(apt.final_fee);
     if (apt.service?.price) return apt.service.price;
     const found = availableServices.find((s) => s.id === apt.service_id);
     return found?.price || 0;
